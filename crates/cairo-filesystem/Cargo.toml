@@ -1,0 +1,19 @@
+[package]
+name = "cairo-filesystem"
+version.workspace = true
+edition.workspace = true
+repository.workspace = true
+license-file.workspace = true
+description = "Virtual filesystem for the compiler."
+
+[dependencies]
+cairo-utils = { path = "../cairo-utils" }
+cairo-debug = { path = "../cairo-debug" }
+path-clean.workspace = true
+cairo-project = { path = "../cairo-project" }
+salsa.workspace = true
+smol_str.workspace = true
+
+[dev-dependencies]
+env_logger.workspace = true
+test-log.workspace = true
