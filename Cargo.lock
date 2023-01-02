@@ -225,7 +225,7 @@ dependencies = [
  "cairo-utils",
  "cairo-vm",
  "env_logger",
- "indoc",
+ "indoc 1.0.7",
  "itertools",
  "num-bigint",
  "pretty_assertions",
@@ -280,7 +280,7 @@ dependencies = [
  "cairo-syntax",
  "cairo-utils",
  "indexmap",
- "indoc",
+ "indoc 1.0.7",
  "itertools",
  "pretty_assertions",
  "salsa",
@@ -297,7 +297,7 @@ dependencies = [
  "cairo-proc-macros",
  "cairo-utils",
  "env_logger",
- "indoc",
+ "indoc 1.0.7",
  "itertools",
  "pretty_assertions",
  "salsa",
@@ -311,7 +311,7 @@ dependencies = [
  "cairo-utils",
  "env_logger",
  "good_lp",
- "indoc",
+ "indoc 1.0.7",
  "itertools",
  "test-case",
  "test-log",
@@ -397,7 +397,7 @@ dependencies = [
  "cairo-utils",
  "env_logger",
  "id-arena",
- "indoc",
+ "indoc 1.0.7",
  "itertools",
  "log",
  "num-bigint",
@@ -441,7 +441,7 @@ dependencies = [
  "cairo-semantic",
  "cairo-syntax",
  "cairo-utils",
- "indoc",
+ "indoc 1.0.7",
  "itertools",
  "pretty_assertions",
  "salsa",
@@ -462,7 +462,7 @@ dependencies = [
 name = "cairo-project"
 version = "0.1.0"
 dependencies = [
- "indoc",
+ "indoc 1.0.7",
  "serde",
  "smol_str",
  "test-log",
@@ -509,7 +509,7 @@ dependencies = [
  "cairo-utils",
  "env_logger",
  "id-arena",
- "indoc",
+ "indoc 1.0.7",
  "itertools",
  "log",
  "num-bigint",
@@ -533,7 +533,7 @@ dependencies = [
  "convert_case",
  "derivative",
  "env_logger",
- "indoc",
+ "indoc 1.0.7",
  "itertools",
  "lalrpop",
  "lalrpop-util",
@@ -556,7 +556,7 @@ dependencies = [
  "cairo-sierra",
  "cairo-utils",
  "env_logger",
- "indoc",
+ "indoc 1.0.7",
  "itertools",
  "test-case",
  "test-log",
@@ -571,7 +571,7 @@ dependencies = [
  "cairo-sierra",
  "cairo-utils",
  "env_logger",
- "indoc",
+ "indoc 1.0.7",
  "itertools",
  "test-case",
  "test-log",
@@ -597,7 +597,7 @@ dependencies = [
  "cairo-utils",
  "env_logger",
  "id-arena",
- "indoc",
+ "indoc 1.0.7",
  "itertools",
  "log",
  "num-bigint",
@@ -620,7 +620,7 @@ dependencies = [
  "cairo-utils",
  "clap 4.0.26",
  "env_logger",
- "indoc",
+ "indoc 1.0.7",
  "itertools",
  "log",
  "num-bigint",
@@ -657,7 +657,7 @@ dependencies = [
  "convert_case",
  "env_logger",
  "genco",
- "indoc",
+ "indoc 1.0.7",
  "itertools",
  "log",
  "num-bigint",
@@ -780,6 +780,16 @@ dependencies = [
  "sha3",
  "starknet-crypto",
  "thiserror",
+]
+
+[[package]]
+name = "cairo_python_bindings"
+version = "0.1.0"
+dependencies = [
+ "cairo-compiler",
+ "cairo-runner",
+ "cairo-sierra-to-casm",
+ "pyo3",
 ]
 
 [[package]]
@@ -2119,6 +2129,44 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5ea3d908b0e36316caf9e9e2c4625cdde190a7e6f440d794667ed17a1855e725"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "pyo3"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "80348539d1fa3fde72728c3fe9d750ec92c39e89908a774eda074289578c8d33"
+dependencies = [
+ "indoc 0.3.6",
+ "inventory",
+ "libc",
+ "parking_lot 0.10.2",
+ "paste 0.1.18",
+ "pyo3cls",
+ "unindent",
+ "version_check",
+]
+
+[[package]]
+name = "pyo3-derive-backend"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa4d5d2e35fa26a8556dfca96c964249062deaa940b7e82e7c214f1bc21d646d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "pyo3cls"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f4628c487dbc084c17d4762bc0b531f373ca315997457708d6c9fabcc5c9928"
+dependencies = [
+ "pyo3-derive-backend",
+ "quote",
+ "syn",
 ]
 
 [[package]]

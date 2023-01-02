@@ -10,7 +10,7 @@ use cairo_sierra::program_registry::{ProgramRegistry, ProgramRegistryError};
 use cairo_sierra::ProgramParser;
 use cairo_sierra_ap_change::calc_ap_changes;
 
-use sierra_gas::calc_gas_info;
+use cairo_sierra_gas::calc_gas_info;
 
 use thiserror::Error;
 
