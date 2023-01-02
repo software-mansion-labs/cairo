@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
+    "crates/cairo_python_bindings",
     "crates/cairo-casm",
     "crates/cairo-compiler",
     "crates/cairo-utils",
