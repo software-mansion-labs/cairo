@@ -290,7 +290,7 @@ pub fn simulate<
         CoreConcreteLibfunc::StarkNet(_) => {
             unimplemented!("Simulation of the StarkNet functionalities is not implemented yet.")
         }
-        &CoreConcreteLibFunc::Cheatcodes(_) => {
+        &CoreConcreteLibfunc::Cheatcodes(_) => {
             unimplemented!("Simulation of the Cheatcodes functionalities is not implemented yet.")
         }
         // TODO: Implement simulation for the cheatcode functions.

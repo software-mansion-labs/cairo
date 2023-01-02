@@ -12,6 +12,7 @@ use cairo_sierra::extensions::mem::MemConcreteLibfunc;
 use cairo_sierra::extensions::nullable::NullableConcreteLibfunc;
 use cairo_sierra::extensions::starknet::StarkNetConcreteLibfunc;
 use cairo_sierra::extensions::strct::StructConcreteLibfunc;
+use cairo_sierra::extensions::cheatcodes::CheatcodesConcreteLibFunc;
 use cairo_sierra::extensions::uint128::{IntOperator, Uint128Concrete};
 
 use crate::ApChange;
@@ -127,7 +128,7 @@ pub fn core_libfunc_ap_change(libfunc: &CoreConcreteLibfunc) -> Vec<ApChange> {
                 vec![ApChange::Known(0), ApChange::Known(0)]
             }
         },
-        CoreConcreteLibFunc::Cheatcodes(libfunc) => match libfunc {
+        CoreConcreteLibfunc::Cheatcodes(libfunc) => match libfunc {
             CheatcodesConcreteLibFunc::Roll(_) => vec![ApChange::Known(1), ApChange::Known(1)],
         }
     }

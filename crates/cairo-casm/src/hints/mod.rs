@@ -62,6 +62,11 @@ pub enum Hint {
     SystemCall {
         system: ResOperand,
     },
+    Roll {
+        address: ResOperand,
+        caller_address: ResOperand,
+        dst: CellRef,
+    },
 }
 
 impl Display for Hint {
@@ -164,11 +169,10 @@ impl Display for Hint {
                 fmt_res_operand(f, system)?;
                 write!(f, ")")?;
             },
-            Roll {
-                address: DerefOrImmediate,
-                caller_address: DerefOrImmediate,
-                dst: CellRef,
-            },
+            Hint::Roll { address, caller_address , dst} => {
+                write!(f, " memory{dst} = 0; ")?;
+                write!(f, " roll(address={}, caller_address={}) ", address, caller_address)?
+            }
         }
         Ok(())
     }

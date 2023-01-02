@@ -23,6 +23,7 @@ use super::pedersen::{PedersenLibfunc, PedersenType};
 use super::range_check::RangeCheckType;
 use super::squashed_dict_felt_to::SquashedDictFeltToType;
 use super::starknet::{StarkNetLibfunc, StarkNetType};
+use super::cheatcodes::{CheatcodesLibFunc};
 use super::strct::{StructLibfunc, StructType};
 use super::uninitialized::UninitializedType;
 use crate::{define_libfunc_hierarchy, define_type_hierarchy};
