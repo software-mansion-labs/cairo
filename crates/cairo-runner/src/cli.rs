@@ -29,7 +29,6 @@ struct Args {
 }
 
 fn main() -> anyhow::Result<()> {
-    println!("[runner] [cli.rs] main 0");
     let args = Args::parse();
 
     let mut db_val = RootDatabase::default();
