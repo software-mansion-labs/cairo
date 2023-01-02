@@ -21,7 +21,6 @@ struct Args {
 }
 
 fn main() -> anyhow::Result<()> {
-    println!("[cairo compiler] [cli.rs] main 0");
     init_logging(log::LevelFilter::Off);
     log::info!("Starting Cairo compilation.");
 
