@@ -20,6 +20,11 @@ use cairo_lang_starknet::contract_class::{
     compile_path as compile_starknet
 };
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
+use cairo_lang_test_runner::{
+    get_db,
+    find_all_tests_wrapper,
+    get_sierra_program,
+};
 
 #[pyfunction]
 fn call_cairo_to_sierra_compiler(input_path: &str, output_path: Option<&str>) -> PyResult<Option<String>> {
@@ -87,11 +92,22 @@ fn starknet_cairo_to_casm(input_path: &str) -> Result<String, anyhow::Error> {
     Ok(casm)
 }
 
+#[pyfunction]
+fn call_test_collector(path: &str) -> PyResult<String> {
+    let mut db_val = get_db(None);
+    let db = &mut db_val;
+    let all_tests = find_all_tests_wrapper(path, db).map_err(|e| PyErr::new::<RuntimeError, _>(format!("{}", e)))?;
+    let sierra_program = get_sierra_program(&all_tests, db).map_err(|e| PyErr::new::<RuntimeError, _>(format!("{}", e)))?;
+    Ok(sierra_program.to_string())
+}
+
+
 #[pymodule]
 fn cairo_python_bindings(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(call_cairo_to_sierra_compiler))?;
     m.add_wrapped(wrap_pyfunction!(call_sierra_to_casm_compiler))?;
     m.add_wrapped(wrap_pyfunction!(call_cairo_to_casm_compiler))?;
     m.add_wrapped(wrap_pyfunction!(call_starknet_contract_compiler))?;
+    m.add_wrapped(wrap_pyfunction!(call_test_collector))?;
     Ok(())
 }

@@ -919,6 +919,7 @@ dependencies = [
  "cairo-lang-runner",
  "cairo-lang-sierra-to-casm",
  "cairo-lang-starknet",
+ "cairo-lang-test-runner",
  "pyo3",
  "serde",
  "serde_json",
