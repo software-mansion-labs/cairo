@@ -920,6 +920,7 @@ dependencies = [
  "cairo-lang-diagnostics",
  "cairo-lang-filesystem",
  "cairo-lang-plugins",
+ "cairo-lang-protostar",
  "cairo-lang-runner",
  "cairo-lang-semantic",
  "cairo-lang-sierra-generator",
