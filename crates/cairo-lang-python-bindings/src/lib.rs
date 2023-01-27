@@ -42,6 +42,10 @@ use cairo_lang_filesystem::ids::CrateId;
 use cairo_lang_semantic::db::SemanticGroup;
 use cairo_lang_syntax::node::Token;
 use cairo_lang_protostar::build_protostar_casm_from_file;
+use cairo_lang_semantic::{ConcreteFunction, FunctionLongId};
+use cairo_lang_semantic::items::functions::GenericFunctionId;
+use cairo_lang_debug::debug::DebugWithDb;
+use itertools::Itertools;
 
 #[pyfunction]
 fn call_cairo_to_sierra_compiler(input_path: &str, output_path: Option<&str>) -> PyResult<Option<String>> {
@@ -110,7 +114,7 @@ fn starknet_cairo_to_casm(input_path: &str) -> Result<String, anyhow::Error> {
 }
 
 #[pyfunction]
-fn call_test_collector(path: &str) -> PyResult<String> {
+fn call_test_collector(path: &str, output_path: Option<&str>) -> PyResult<(Option<String>, Vec<String>)> {
     let plugins: Vec<Arc<dyn SemanticPlugin>> = vec![
         Arc::new(DerivePlugin {}),
         Arc::new(PanicablePlugin {}),
@@ -132,7 +136,36 @@ fn call_test_collector(path: &str) -> PyResult<String> {
         .to_option()
         .with_context(|| "Compilation failed without any diagnostics.").map_err(|_| PyErr::new::<RuntimeError, _>("Failed to write output."))?;
     let sierra_program = replace_sierra_ids_in_program(db, &sierra_program);
-    Ok(sierra_program.to_string())
+
+    let named_tests: Vec<String> = all_tests
+        .into_iter()
+        .map(|test| {
+            (
+                format!(
+                    "{:?}",
+                    FunctionLongId {
+                        function: ConcreteFunction {
+                            generic_function: GenericFunctionId::Free(test.func_id),
+                            generic_args: vec![]
+                        }
+                    }
+                    .debug(db)
+                ),
+                test,
+            )
+        })
+        .collect_vec()
+        .into_iter()
+        .map(|(test_name, _test_config)| test_name)
+        .collect();
+
+    let mut result_contents = None;
+    if let Some(path) = output_path {
+        fs::write(path, &sierra_program.to_string()).map_err(|_| PyErr::new::<RuntimeError, _>("Failed to write output."))?;
+    } else {
+        result_contents = Some(sierra_program.to_string());
+    }
+    Ok((result_contents, named_tests))
 }
 
 
@@ -221,8 +254,8 @@ fn find_all_tests(db: &dyn SemanticGroup, main_crates: Vec<CrateId>) -> Vec<Test
 }
 
 #[pyfunction]
-fn call_protostar_sierra_to_casm(input_path: &str, output_path: Option<&str>) -> PyResult<Option<String>> {
-    let casm = build_protostar_casm_from_file(input_path.to_string(), output_path.map(|s| s.to_string()))
+fn call_protostar_sierra_to_casm(named_tests: Vec<String>, input_path: &str, output_path: Option<&str>) -> PyResult<Option<String>> {
+    let casm = build_protostar_casm_from_file(Some(named_tests), input_path.to_string(), output_path.map(|s| s.to_string()))
         .map_err(|e| PyErr::new::<RuntimeError, _>(format!("{}", e)))?;
 
     Ok(casm)

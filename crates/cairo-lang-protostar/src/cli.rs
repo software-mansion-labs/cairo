@@ -14,7 +14,7 @@ struct Args {
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    if let Some(output_contents) = build_protostar_casm_from_file(args.file, args.output)? {
+    if let Some(output_contents) = build_protostar_casm_from_file(None, args.file, args.output)? {
         println!("{}", output_contents);
     }
 
