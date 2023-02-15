@@ -323,7 +323,7 @@ impl Display for Hint {
             Hint::SystemCall { system } => {
                 write!(f, "syscall_handler.syscall(syscall_ptr={})", ResOperandFormatter(system))
             }
-            Hint::Roll { address, caller_address , dst} => {
+            Hint::Roll { address, caller_address, dst } => {
                 writedoc!(
                     f,
                     "
@@ -333,7 +333,7 @@ impl Display for Hint {
                     "
                 )
             }
-            Hint::Declare { contract , result, error_code} => {
+            Hint::Declare { contract, result, error_code } => {
                 writedoc!(
                     f,
                     "

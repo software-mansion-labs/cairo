@@ -1,7 +1,6 @@
 use cairo_lang_sierra::extensions::cheatcodes::CheatcodesConcreteLibFunc;
 
-use crate::core_libfunc_cost_base::{CostOperations};
-
+use crate::core_libfunc_cost_base::CostOperations;
 
 pub fn cheatcodes_libfunc_cost_base<Ops: CostOperations>(
     ops: &mut Ops,

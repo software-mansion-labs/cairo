@@ -1,10 +1,12 @@
+use super::felt::FeltType;
 use crate::define_libfunc_hierarchy;
 use crate::extensions::lib_func::{
-    LibfuncSignature, SignatureSpecializationContext, SierraApChange, OutputVarInfo, ParamSignature, BranchSignature,
+    BranchSignature, LibfuncSignature, OutputVarInfo, ParamSignature, SierraApChange,
+    SignatureSpecializationContext,
 };
-use crate::extensions::{SpecializationError, NoGenericArgsGenericLibfunc, NamedType, OutputVarReferenceInfo};
-
-use super::felt::FeltType;
+use crate::extensions::{
+    NamedType, NoGenericArgsGenericLibfunc, OutputVarReferenceInfo, SpecializationError,
+};
 
 define_libfunc_hierarchy! {
     pub enum CheatcodesLibFunc {
@@ -12,7 +14,6 @@ define_libfunc_hierarchy! {
         Declare(DeclareLibFunc),
     }, CheatcodesConcreteLibFunc
 }
-
 
 #[derive(Default)]
 pub struct DeclareLibFunc {}
@@ -26,19 +27,17 @@ impl NoGenericArgsGenericLibfunc for DeclareLibFunc {
         let felt_ty = context.get_concrete_type(FeltType::id(), &[])?;
         Ok(LibfuncSignature {
             param_signatures: vec![
-                // Contract 
+                // Contract
                 ParamSignature::new(felt_ty.clone()),
             ],
             branch_signatures: vec![
                 // Success branch
                 BranchSignature {
-                    vars: vec![
-                        OutputVarInfo {
-                            // ty: context.get_concrete_type(ClassHashType::id(), &[])?,
-                            ty: felt_ty.clone(),
-                            ref_info: OutputVarReferenceInfo::SameAsParam { param_idx: 0 },
-                        },
-                    ],
+                    vars: vec![OutputVarInfo {
+                        // ty: context.get_concrete_type(ClassHashType::id(), &[])?,
+                        ty: felt_ty.clone(),
+                        ref_info: OutputVarReferenceInfo::SameAsParam { param_idx: 0 },
+                    }],
                     ap_change: SierraApChange::Known { new_vars_only: false },
                 },
                 BranchSignature {
@@ -56,7 +55,6 @@ impl NoGenericArgsGenericLibfunc for DeclareLibFunc {
         })
     }
 }
-
 
 /// LibFunc for creating a new array.
 #[derive(Default)]

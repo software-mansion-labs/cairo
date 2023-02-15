@@ -33,6 +33,7 @@ mod bitwise;
 mod boolean;
 mod boxing;
 mod builtin_cost;
+mod cheatcodes;
 mod debug;
 mod dict_felt_to;
 mod ec;
@@ -45,7 +46,6 @@ mod misc;
 mod nullable;
 mod pedersen;
 mod starknet;
-mod cheatcodes;
 
 mod structure;
 mod uint;

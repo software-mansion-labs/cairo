@@ -1,12 +1,12 @@
 use cairo_lang_sierra::extensions::cheatcodes::CheatcodesConcreteLibFunc;
 
-use self::{roll::build_roll, declare::build_declare};
-
+use self::declare::build_declare;
+use self::roll::build_roll;
 use super::{CompiledInvocation, CompiledInvocationBuilder};
 use crate::invocations::InvocationError;
 
-mod roll;
 mod declare;
+mod roll;
 
 /// Builds instructions for Sierra array operations.
 pub fn build(

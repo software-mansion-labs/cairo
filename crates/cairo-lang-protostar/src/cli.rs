@@ -1,7 +1,6 @@
 //! Compiles and runs a Cairo program.
-use clap::Parser;
-
 use cairo_lang_protostar::build_protostar_casm_from_file;
+use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[clap(version, verbatim_doc_comment)]
