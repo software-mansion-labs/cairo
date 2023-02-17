@@ -6,5 +6,6 @@
 // mod fib_counter;
 // mod fib_uint128;
 // mod fib_struct;
+#[cfg(test)]
 mod cheatcode_caller;
 // mod testing;

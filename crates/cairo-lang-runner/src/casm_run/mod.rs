@@ -104,7 +104,7 @@ fn cell_ref_to_relocatable(cell_ref: &CellRef, vm: &VirtualMachine) -> Relocatab
 /// Inserts a value into the vm memory cell represented by the cellref.
 macro_rules! insert_value_to_cellref {
     ($vm:ident, $cell_ref:ident, $value:expr) => {
-        $vm.insert_value(&cell_ref_to_relocatable($cell_ref, $vm), $value)
+        $vm.insert_value(&cell_ref_to_relocatable(&$cell_ref, $vm), $value)
     };
 }
 
@@ -303,9 +303,31 @@ impl HintProcessor for CairoHintProcessor {
                     panic!("Unknown selector for system call!");
                 }
             }
-            &Hint::Roll { .. } => todo!(),
-            &Hint::Declare { .. } => todo!(),
-            &Hint::StartPrank { .. } => todo!(),
+            Hint::Roll { address, caller_address, dst } => {
+                let address_val = get_val(address)?;
+                let caller_address_val = get_val(caller_address)?;
+                let zero = Felt::from(0);
+                if address_val > zero && caller_address_val > zero {
+                    insert_value_to_cellref!(vm, dst, zero)?;
+                } else {
+                    insert_value_to_cellref!(vm, dst, Felt::from(1))?;
+                }
+            },
+            #[allow(unused_variables)]
+            Hint::Declare { contract, result, error_code } => {
+                insert_value_to_cellref!(vm, result, Felt::from(0))?;
+                insert_value_to_cellref!(vm, error_code, Felt::from(0))?;
+            },
+            Hint::StartPrank { caller_address, target_contract_address, error_code } => {
+                let caller_address_val = get_val(caller_address)?;
+                let target_contract_address_val = get_val(target_contract_address)?;
+                let zero = Felt::from(0);
+                if caller_address_val > zero && target_contract_address_val > zero {
+                    insert_value_to_cellref!(vm, error_code, zero)?;
+                } else {
+                    insert_value_to_cellref!(vm, error_code, Felt::from(1))?;
+                }
+            },
             Hint::AllocDictFeltTo { dict_manager_ptr } => {
                 let (cell, base_offset) = extract_buffer(dict_manager_ptr);
                 let dict_manager_address = get_ptr(cell, &base_offset)?;
