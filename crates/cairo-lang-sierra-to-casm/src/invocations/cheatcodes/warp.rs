@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use cairo_lang_casm::{builder::CasmBuilder, casm_build_extend};
 
 use super::{CompiledInvocation, CompiledInvocationBuilder, InvocationError};
@@ -7,35 +5,21 @@ use crate::invocations::{
     add_input_variables, get_non_fallthrough_statement_id, CostValidationInfo,
 };
 
-pub fn build_prepare(
+pub fn build_warp(
     builder: CompiledInvocationBuilder<'_>,
 ) -> Result<CompiledInvocation, InvocationError> {
     let failure_handle_statement_id = get_non_fallthrough_statement_id(&builder);
-    let refs = builder.try_get_refs::<2>()?;
-
-    let mut optional_class_hash = None;
-    if let [maybe_class_hash] = refs[0].cells.deref() {
-        optional_class_hash = Some(maybe_class_hash);
-    }
-    let class_hash = optional_class_hash.ok_or(InvocationError::InvalidGenericArg)?;
-
-    let [calldata_start, calldata_end] = refs[3].try_unpack()?;
+    let [blk_timestamp, target_contract_address] = builder.try_get_single_cells()?;
 
     let mut casm_builder = CasmBuilder::default();
     add_input_variables! {casm_builder,
-        deref class_hash;
-        deref calldata_start;
-        deref calldata_end;
+        deref blk_timestamp;
+        deref target_contract_address;
     };
 
     casm_build_extend! {casm_builder,
         tempvar err_code;
-        tempvar result;
-        hint Prepare {
-            class_hash: class_hash,
-            calldata_start: calldata_start,
-            calldata_end: calldata_end
-        } into {result: result, err_code: err_code};
+        hint Warp {blk_timestamp: blk_timestamp, target_contract_address: target_contract_address} into {err_code: err_code};
         jump Failure if err_code != 0;
     };
 

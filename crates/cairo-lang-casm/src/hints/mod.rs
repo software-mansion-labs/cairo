@@ -152,6 +152,11 @@ pub enum Hint {
         caller_address: ResOperand,
         err_code: CellRef,
     },
+    Warp {
+        blk_timestamp: ResOperand,
+        target_contract_address: ResOperand,
+        err_code: CellRef,
+    },
     Declare {
         contract: ResOperand,
         result: CellRef,
@@ -160,6 +165,13 @@ pub enum Hint {
     StartPrank {
         caller_address: ResOperand,
         target_contract_address: ResOperand,
+        err_code: CellRef,
+    },
+    Invoke {
+        contract_address: ResOperand,
+        function_name: ResOperand,
+        calldata_start: ResOperand,
+        calldata_end: ResOperand,
         err_code: CellRef,
     },
     /// Prints the values from start to end.
@@ -328,12 +340,15 @@ impl Display for Hint {
             Hint::SystemCall { system } => {
                 write!(f, "syscall_handler.syscall(syscall_ptr={})", ResOperandFormatter(system))
             }
+
+            // TODO(Radinyn): FIND OUT HOW TO SAVE AN ARRAY IN MEMORY
             Hint::Prepare { class_hash, calldata_start, calldata_end } => {
                 writedoc!(
                     f,
                     "
                         r = prepare(class_hash={class_hash}, calldata_start={calldata_start}, calldata_end={calldata_end});
                         memory{err_code} = r.err_code
+                        memory{result} = 0 if r.err_code != 0 else r.ok
                     "
                 )
             }
@@ -343,6 +358,14 @@ impl Display for Hint {
                     f,
                     "
                     memory{err_code} = roll(address={address}, caller_address={caller_address}).err_code; 
+                    "
+                )
+            }
+            Hint::Warp { blk_timestamp, target_contract_address, err_code } => {
+                writedoc!(
+                    f,
+                    "
+                    memory{err_code} = warp(blk_timestamp={blk_timestamp}, target_contract_address={target_contract_address}).err_code; 
                     "
                 )
             }
@@ -361,6 +384,22 @@ impl Display for Hint {
                         r = declare(contract={contract});
                         memory{err_code} = r.err_code
                         memory{result} = 0 if r.err_code != 0 else r.ok.class_hash
+                    "
+                )
+            }
+
+            Hint::Invoke {
+                contract_address,
+                function_name,
+                calldata_start,
+                calldata_end,
+                err_code,
+            } => {
+                writedoc!(
+                    f,
+                    "
+                        r = invoke(contract_address={contract_address}, function_name={function_name}, calldata_start={calldata_start}, calldata_end={calldata_end});
+                        memory{err_code} = r.err_code
                     "
                 )
             }

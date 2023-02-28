@@ -1,26 +1,43 @@
 use result::ResultTrait;
 use array::ArrayTrait;
 
-const CONSTANT: felt = 1;
 
-fn test_cheatcode_caller() {
-    roll(CONSTANT, 2)
+fn test_roll() {
+    match roll(1, 2) {
+        Result::Ok(_) => (),
+        Result::Err(x) => {
+            let mut data = array_new::<felt>();
+            array_append::<felt>(ref data, x);
+            panic(data)
+        },
+    }
 }
 
-fn test_cheatcode_caller_twice() {
-    roll(1, 2);
-    roll(1, 2)
-}
-
-fn test_cheatcode_caller_three() {
-    roll(1, 2);
-    roll(1, 2);
-    roll(1, 2)
+fn test_warp() {
+    match warp(1, 2) {
+        Result::Ok(_) => (),
+        Result::Err(x) => {
+            let mut data = array_new::<felt>();
+            array_append::<felt>(ref data, x);
+            panic(data)
+        },
+    }
 }
 
 fn test_declare() {
     match declare('test') {
-        Result::Ok(class_hash) => (),
+        Result::Ok(_) => (),
+        Result::Err(x) => {
+            let mut data = array_new::<felt>();
+            array_append::<felt>(ref data, x);
+            panic(data)
+        },
+    }
+}
+
+fn test_start_prank() {
+    match start_prank(123, 123) {
+        Result::Ok(_) => (),
         Result::Err(x) => {
             let mut data = array_new::<felt>();
             array_append::<felt>(ref data, x);
@@ -45,8 +62,12 @@ fn test_prepare() {
     }
 }
 
-fn test_start_prank() {
-    match start_prank(123, 123) {
+fn test_invoke() {
+    let mut arr = ArrayTrait::new();
+    arr.append(10);
+    arr.append(11);
+    arr.append(12);
+    match invoke(123, 'test', arr) {
         Result::Ok(class_hash) => (),
         Result::Err(x) => {
             let mut data = array_new::<felt>();
