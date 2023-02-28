@@ -328,7 +328,17 @@ impl Display for Hint {
             Hint::SystemCall { system } => {
                 write!(f, "syscall_handler.syscall(syscall_ptr={})", ResOperandFormatter(system))
             }
-            Hint::Roll { address, caller_address , err_code} => {
+            Hint::Prepare { class_hash, calldata_start, calldata_end } => {
+                writedoc!(
+                    f,
+                    "
+                        r = prepare(class_hash={class_hash}, calldata_start={calldata_start}, calldata_end={calldata_end});
+                        memory{err_code} = r.err_code
+                    "
+                )
+            }
+
+            Hint::Roll { address, caller_address, err_code } => {
                 writedoc!(
                     f,
                     "
@@ -336,7 +346,7 @@ impl Display for Hint {
                     "
                 )
             }
-            Hint::StartPrank { caller_address, target_contract_address , err_code} => {
+            Hint::StartPrank { caller_address, target_contract_address, err_code } => {
                 writedoc!(
                     f,
                     "
@@ -344,7 +354,7 @@ impl Display for Hint {
                     "
                 )
             }
-            Hint::Declare { contract , result, err_code} => {
+            Hint::Declare { contract, result, err_code } => {
                 writedoc!(
                     f,
                     "

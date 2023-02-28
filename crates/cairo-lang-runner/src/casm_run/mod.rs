@@ -303,6 +303,7 @@ impl HintProcessor for CairoHintProcessor {
                     panic!("Unknown selector for system call!");
                 }
             }
+            &Hint::Prepare { .. } => todo!(),
             &Hint::Roll { .. } => todo!(),
             &Hint::Declare { .. } => todo!(),
             &Hint::StartPrank { .. } => todo!(),

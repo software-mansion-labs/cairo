@@ -1,8 +1,11 @@
 use crate::define_libfunc_hierarchy;
 use crate::extensions::lib_func::{
-    LibfuncSignature, SignatureSpecializationContext, SierraApChange, OutputVarInfo, ParamSignature, BranchSignature,
+    BranchSignature, LibfuncSignature, OutputVarInfo, ParamSignature, SierraApChange,
+    SignatureSpecializationContext,
 };
-use crate::extensions::{SpecializationError, NoGenericArgsGenericLibfunc, NamedType, OutputVarReferenceInfo};
+use crate::extensions::{
+    NamedType, NoGenericArgsGenericLibfunc, OutputVarReferenceInfo, SpecializationError,
+};
 
 use super::array::ArrayType;
 use super::felt::FeltType;
@@ -16,7 +19,6 @@ define_libfunc_hierarchy! {
     }, CheatcodesConcreteLibFunc
 }
 
-
 #[derive(Default)]
 pub struct DeclareLibFunc {}
 impl NoGenericArgsGenericLibfunc for DeclareLibFunc {
@@ -29,19 +31,17 @@ impl NoGenericArgsGenericLibfunc for DeclareLibFunc {
         let felt_ty = context.get_concrete_type(FeltType::id(), &[])?;
         Ok(LibfuncSignature {
             param_signatures: vec![
-                // Contract 
+                // Contract
                 ParamSignature::new(felt_ty.clone()),
             ],
             branch_signatures: vec![
                 // Success branch
                 BranchSignature {
-                    vars: vec![
-                        OutputVarInfo {
-                            // ty: context.get_concrete_type(ClassHashType::id(), &[])?,
-                            ty: felt_ty.clone(),
-                            ref_info: OutputVarReferenceInfo::SameAsParam { param_idx: 0 },
-                        },
-                    ],
+                    vars: vec![OutputVarInfo {
+                        // ty: context.get_concrete_type(ClassHashType::id(), &[])?,
+                        ty: felt_ty.clone(),
+                        ref_info: OutputVarReferenceInfo::SameAsParam { param_idx: 0 },
+                    }],
                     ap_change: SierraApChange::Known { new_vars_only: false },
                 },
                 BranchSignature {
@@ -59,7 +59,6 @@ impl NoGenericArgsGenericLibfunc for DeclareLibFunc {
         })
     }
 }
-
 
 /// LibFunc for creating a new array.
 #[derive(Default)]
@@ -114,39 +113,41 @@ impl NoGenericArgsGenericLibfunc for PrepareLibFunc {
         Ok(LibfuncSignature {
             param_signatures: vec![
                 ParamSignature::new(felt_ty.clone()),
-                ],
-                branch_signatures: vec![
-                    BranchSignature {
-                        vars: vec![
-                            OutputVarInfo {
-                                ty: context.get_wrapped_concrete_type(ArrayType::id(), felt_ty.clone())?,
-                                ref_info: OutputVarReferenceInfo::NewTempVar { idx: None },
-                            },
-                            OutputVarInfo {
-                                ty: felt_ty.clone(),
-                                ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
-                            },
-                            OutputVarInfo {
-                                ty: felt_ty.clone(),
-                                ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
-                            },
-                        ],
-                        ap_change: SierraApChange::Known { new_vars_only: false },
-                    },
-                    BranchSignature {
-                        vars: vec![
-                            OutputVarInfo {
-                                ty: felt_ty.clone(),
-                                ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
-                            },
-                        ],
-                        ap_change: SierraApChange::Known { new_vars_only: false },
-                    },
-                ],
-                fallthrough: Some(0),
-            })
-        }
+                ParamSignature::new(
+                    context.get_wrapped_concrete_type(ArrayType::id(), felt_ty.clone())?,
+                ),
+            ],
+            branch_signatures: vec![
+                BranchSignature {
+                    vars: vec![
+                        OutputVarInfo {
+                            ty: context
+                                .get_wrapped_concrete_type(ArrayType::id(), felt_ty.clone())?,
+                            ref_info: OutputVarReferenceInfo::NewTempVar { idx: None },
+                        },
+                        OutputVarInfo {
+                            ty: felt_ty.clone(),
+                            ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
+                        },
+                        OutputVarInfo {
+                            ty: felt_ty.clone(),
+                            ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
+                        },
+                    ],
+                    ap_change: SierraApChange::Known { new_vars_only: false },
+                },
+                BranchSignature {
+                    vars: vec![OutputVarInfo {
+                        ty: felt_ty.clone(),
+                        ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
+                    }],
+                    ap_change: SierraApChange::Known { new_vars_only: false },
+                },
+            ],
+            fallthrough: Some(0),
+        })
     }
+}
 
 /// LibFunc for creating a new array.
 #[derive(Default)]
