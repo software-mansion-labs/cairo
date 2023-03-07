@@ -37,3 +37,7 @@ extern fn start_prank(
 extern fn invoke(
     contract_address: felt, entry_point_selector: felt, calldata: Array::<felt>
 ) -> Result::<(), felt> nopanic;
+
+extern fn mock_call(
+    contract_address: felt, entry_point_selector: felt, response: Array::<felt>
+) -> Result::<(), felt> nopanic;

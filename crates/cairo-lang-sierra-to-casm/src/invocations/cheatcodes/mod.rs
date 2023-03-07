@@ -1,8 +1,8 @@
 use cairo_lang_sierra::extensions::cheatcodes::CheatcodesConcreteLibFunc;
 
 use self::{
-    declare::build_declare, invoke::build_invoke, prepare::build_prepare, roll::build_roll,
-    start_prank::build_start_prank, warp::build_warp,
+    declare::build_declare, invoke::build_invoke, mock_call::build_mock_call,
+    prepare::build_prepare, roll::build_roll, start_prank::build_start_prank, warp::build_warp,
 };
 
 use super::{CompiledInvocation, CompiledInvocationBuilder};
@@ -10,6 +10,7 @@ use crate::invocations::InvocationError;
 
 mod declare;
 mod invoke;
+mod mock_call;
 mod prepare;
 mod roll;
 mod start_prank;
@@ -27,5 +28,6 @@ pub fn build(
         CheatcodesConcreteLibFunc::StartPrank(_) => build_start_prank(builder),
         CheatcodesConcreteLibFunc::Prepare(_) => build_prepare(builder),
         CheatcodesConcreteLibFunc::Invoke(_) => build_invoke(builder),
+        CheatcodesConcreteLibFunc::MockCall(_) => build_mock_call(builder),
     }
 }
