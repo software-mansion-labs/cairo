@@ -160,18 +160,21 @@ impl NoGenericArgsGenericLibfunc for PrepareLibFunc {
             branch_signatures: vec![
                 BranchSignature {
                     vars: vec![
+                        // Constructor Calldata
                         OutputVarInfo {
                             ty: context
                                 .get_wrapped_concrete_type(ArrayType::id(), felt_ty.clone())?,
-                            ref_info: OutputVarReferenceInfo::NewTempVar { idx: None },
+                            ref_info: OutputVarReferenceInfo::SameAsParam { param_idx: 1 },
                         },
+                        // Contract Address
                         OutputVarInfo {
                             ty: felt_ty.clone(),
                             ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
                         },
+                        // Class Hash
                         OutputVarInfo {
                             ty: felt_ty.clone(),
-                            ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
+                            ref_info: OutputVarReferenceInfo::SameAsParam { param_idx: 0 },
                         },
                     ],
                     ap_change: SierraApChange::Known { new_vars_only: false },

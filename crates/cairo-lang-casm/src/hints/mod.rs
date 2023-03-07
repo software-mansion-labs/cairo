@@ -174,6 +174,13 @@ pub enum Hint {
         calldata_end: ResOperand,
         err_code: CellRef,
     },
+    Prepare {
+        class_hash: ResOperand,
+        calldata_start: ResOperand,
+        calldata_end: ResOperand,
+        contract_address: CellRef,
+        err_code: CellRef,
+    },
     /// Prints the values from start to end.
     /// Both must be pointers.
     DebugPrint {
@@ -341,14 +348,13 @@ impl Display for Hint {
                 write!(f, "syscall_handler.syscall(syscall_ptr={})", ResOperandFormatter(system))
             }
 
-            // TODO(Radinyn): FIND OUT HOW TO SAVE AN ARRAY IN MEMORY
-            Hint::Prepare { class_hash, calldata_start, calldata_end } => {
+            Hint::Prepare { class_hash, calldata_start, calldata_end, contract_address, err_code } => {
                 writedoc!(
                     f,
                     "
                         r = prepare(class_hash={class_hash}, calldata_start={calldata_start}, calldata_end={calldata_end});
                         memory{err_code} = r.err_code
-                        memory{result} = 0 if r.err_code != 0 else r.ok
+                        memory{contract_address} = 0 if r.err_code != 0 else r.ok.2
                     "
                 )
             }

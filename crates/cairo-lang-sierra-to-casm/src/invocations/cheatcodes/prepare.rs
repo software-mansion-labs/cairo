@@ -19,7 +19,7 @@ pub fn build_prepare(
     }
     let class_hash = optional_class_hash.ok_or(InvocationError::InvalidGenericArg)?;
 
-    let [calldata_start, calldata_end] = refs[3].try_unpack()?;
+    let [calldata_start, calldata_end] = refs[1].try_unpack()?;
 
     let mut casm_builder = CasmBuilder::default();
     add_input_variables! {casm_builder,
@@ -30,19 +30,20 @@ pub fn build_prepare(
 
     casm_build_extend! {casm_builder,
         tempvar err_code;
-        tempvar result;
+        tempvar contract_address;
         hint Prepare {
             class_hash: class_hash,
             calldata_start: calldata_start,
             calldata_end: calldata_end
-        } into {result: result, err_code: err_code};
+        } into {contract_address: contract_address, err_code: err_code};
+        ap += 2;
         jump Failure if err_code != 0;
     };
 
     Ok(builder.build_from_casm_builder(
         casm_builder,
         [
-            ("Fallthrough", &[], None),
+            ("Fallthrough", &[&[calldata_start, calldata_end], &[contract_address], &[class_hash]], None),
             ("Failure", &[&[err_code]], Some(failure_handle_statement_id)),
         ],
         CostValidationInfo { range_check_info: None, extra_costs: None },
