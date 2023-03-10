@@ -44,9 +44,8 @@ fn compile_starknet_contract_from_path(
         .map_err(|e| PyErr::new::<RuntimeError, _>(format!("{e}")))?;
 
     if let Some(path) = output_path {
-        fs::write(path, casm).map_err(|e| {
-            PyErr::new::<RuntimeError, _>(format!("Failed to write output: {e}"))
-        })?;
+        fs::write(path, casm)
+            .map_err(|e| PyErr::new::<RuntimeError, _>(format!("Failed to write output: {e}")))?;
         return Ok(None);
     }
     Ok(Some(casm))
@@ -89,17 +88,23 @@ fn collect_tests(
         Arc::new(PanicablePlugin {}),
         Arc::new(ConfigPlugin { configs: HashSet::from(["test".to_string()]) }),
     ];
-    let db = &mut RootDatabase::builder().with_plugins(plugins).detect_corelib().build().map_err(
-        |e| PyErr::new::<RuntimeError, _>(format!("Failed to build database: {e}")),
-    )?;
+    let db = &mut RootDatabase::builder()
+        .with_plugins(plugins)
+        .detect_corelib()
+        .build()
+        .map_err(|e| PyErr::new::<RuntimeError, _>(format!("Failed to build database: {e}")))?;
 
     let main_crate_ids = setup_project(db, Path::new(&input_path)).map_err(|e| {
-        PyErr::new::<RuntimeError, _>(format!("Failed to setup project for path({input_path}): {e}"))
+        PyErr::new::<RuntimeError, _>(format!(
+            "Failed to setup project for path({input_path}): {e}"
+        ))
     })?;
     if let Some(cairo_paths) = maybe_cairo_paths {
         for cairo_path in cairo_paths {
             setup_project(db, Path::new(cairo_path)).map_err(|e| {
-                PyErr::new::<RuntimeError, _>(format!("Failed to add cairo path({cairo_path}): {e}"))
+                PyErr::new::<RuntimeError, _>(format!(
+                    "Failed to add cairo path({cairo_path}): {e}"
+                ))
             })?;
         }
     }
@@ -121,9 +126,7 @@ fn collect_tests(
         )
         .to_option()
         .with_context(|| "Compilation failed without any diagnostics")
-        .map_err(|e| {
-            PyErr::new::<RuntimeError, _>(format!("Failed to get sierra program: {e}"))
-        })?;
+        .map_err(|e| PyErr::new::<RuntimeError, _>(format!("Failed to get sierra program: {e}")))?;
 
     let named_tests = all_tests
         .into_iter()
@@ -149,15 +152,13 @@ fn collect_tests(
 
     let sierra_program = replace_sierra_ids_in_program(db, &sierra_program);
 
-    validate_tests(sierra_program.clone(), &named_tests).map_err(|e| {
-        PyErr::new::<RuntimeError, _>(format!("Test validation failed: {e}"))
-    })?;
+    validate_tests(sierra_program.clone(), &named_tests)
+        .map_err(|e| PyErr::new::<RuntimeError, _>(format!("Test validation failed: {e}")))?;
 
     let mut result_contents = None;
     if let Some(path) = output_path {
-        fs::write(path, sierra_program.to_string()).map_err(|e| {
-            PyErr::new::<RuntimeError, _>(format!("Failed to write output: {e}"))
-        })?;
+        fs::write(path, sierra_program.to_string())
+            .map_err(|e| PyErr::new::<RuntimeError, _>(format!("Failed to write output: {e}")))?;
     } else {
         result_contents = Some(sierra_program.to_string());
     }

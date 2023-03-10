@@ -77,7 +77,9 @@ impl SierraCasmGenerator {
         calc_gas: bool,
     ) -> Result<Self, Box<GeneratorError>> {
         let metadata = create_metadata(&sierra_program, calc_gas)?;
-        // try using a fully qualified path to specify the expected types: `<std::boxed::Box<cairo_lang_sierra::program_registry::ProgramRegistryError> as std::convert::Into<T>>::into(`, `)`
+        // try using a fully qualified path to specify the expected types:
+        // `<std::boxed::Box<cairo_lang_sierra::program_registry::ProgramRegistryError> as
+        // std::convert::Into<T>>::into(`, `)`
         let sierra_program_registry =
             ProgramRegistry::<CoreType, CoreLibfunc>::new(&sierra_program).unwrap();
         let casm_program =
@@ -124,8 +126,7 @@ impl SierraCasmGenerator {
         for test in &tests {
             let func = self.find_function(test)?;
             let initial_gas = 0;
-            let (proper_entry_code, _, _) =
-                self.create_entry_code(func, &[], initial_gas, acc)?;
+            let (proper_entry_code, _, _) = self.create_entry_code(func, &[], initial_gas, acc)?;
             if entry_codes_offsets.len() > i + 1 {
                 acc -= entry_codes_offsets[i + 1];
                 i += 1;
