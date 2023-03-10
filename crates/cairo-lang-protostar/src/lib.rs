@@ -11,7 +11,7 @@ pub fn build_protostar_casm(
     named_tests: Option<Vec<String>>,
     contents: &str,
 ) -> anyhow::Result<String> {
-    let program: Program = ProgramParser::new().parse(&contents).unwrap();
+    let program: Program = ProgramParser::new().parse(contents).unwrap();
     let casm_generator = match SierraCasmGenerator::new(program, false) {
         Ok(casm_generator) => casm_generator,
         Err(e) => panic!("{}", e),

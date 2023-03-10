@@ -18,7 +18,7 @@ fn main() -> anyhow::Result<()> {
     let sierra_code = fs::read_to_string(args.file).expect("Could not read file!");
     if let Some(output_contents) = build_protostar_casm_from_sierra(None, sierra_code, args.output)?
     {
-        println!("{}", output_contents);
+        println!("{output_contents}");
     }
 
     Ok(())
