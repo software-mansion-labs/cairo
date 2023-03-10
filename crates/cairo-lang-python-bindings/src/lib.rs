@@ -41,12 +41,11 @@ fn compile_starknet_contract_from_path(
     maybe_cairo_paths: Option<Vec<&str>>,
 ) -> PyResult<Option<String>> {
     let casm = starknet_cairo_to_casm(input_path, maybe_cairo_paths)
-        .map_err(|e| PyErr::new::<RuntimeError, _>(format!("{}", e)))?;
+        .map_err(|e| PyErr::new::<RuntimeError, _>(format!("{e}")))?;
 
     if let Some(path) = output_path {
-        fs::write(path, casm).map_err(|e| {
-            PyErr::new::<RuntimeError, _>(format!("Failed to write output: {}", e.to_string()))
-        })?;
+        fs::write(path, casm)
+            .map_err(|e| PyErr::new::<RuntimeError, _>(format!("Failed to write output: {e}")))?;
         return Ok(None);
     }
     Ok(Some(casm))
@@ -89,24 +88,22 @@ fn collect_tests(
         Arc::new(PanicablePlugin {}),
         Arc::new(ConfigPlugin { configs: HashSet::from(["test".to_string()]) }),
     ];
-    let db = &mut RootDatabase::builder().with_plugins(plugins).detect_corelib().build().map_err(
-        |e| PyErr::new::<RuntimeError, _>(format!("Failed to build database: {}", e.to_string())),
-    )?;
+    let db = &mut RootDatabase::builder()
+        .with_plugins(plugins)
+        .detect_corelib()
+        .build()
+        .map_err(|e| PyErr::new::<RuntimeError, _>(format!("Failed to build database: {e}")))?;
 
     let main_crate_ids = setup_project(db, Path::new(&input_path)).map_err(|e| {
         PyErr::new::<RuntimeError, _>(format!(
-            "Failed to setup project for path({}): {}",
-            input_path,
-            e.to_string()
+            "Failed to setup project for path({input_path}): {e}"
         ))
     })?;
     if let Some(cairo_paths) = maybe_cairo_paths {
         for cairo_path in cairo_paths {
             setup_project(db, Path::new(cairo_path)).map_err(|e| {
                 PyErr::new::<RuntimeError, _>(format!(
-                    "Failed to add cairo path({}): {}",
-                    cairo_path,
-                    e.to_string()
+                    "Failed to add cairo path({cairo_path}): {e}"
                 ))
             })?;
         }
@@ -129,12 +126,7 @@ fn collect_tests(
         )
         .to_option()
         .with_context(|| "Compilation failed without any diagnostics")
-        .map_err(|e| {
-            PyErr::new::<RuntimeError, _>(format!(
-                "Failed to get sierra program: {}",
-                e.to_string()
-            ))
-        })?;
+        .map_err(|e| PyErr::new::<RuntimeError, _>(format!("Failed to get sierra program: {e}")))?;
 
     let named_tests = all_tests
         .into_iter()
@@ -160,15 +152,13 @@ fn collect_tests(
 
     let sierra_program = replace_sierra_ids_in_program(db, &sierra_program);
 
-    validate_tests(sierra_program.clone(), &named_tests).map_err(|e| {
-        PyErr::new::<RuntimeError, _>(format!("Test validation failed: {}", e.to_string()))
-    })?;
+    validate_tests(sierra_program.clone(), &named_tests)
+        .map_err(|e| PyErr::new::<RuntimeError, _>(format!("Test validation failed: {e}")))?;
 
     let mut result_contents = None;
     if let Some(path) = output_path {
-        fs::write(path, &sierra_program.to_string()).map_err(|e| {
-            PyErr::new::<RuntimeError, _>(format!("Failed to write output: {}", e.to_string()))
-        })?;
+        fs::write(path, sierra_program.to_string())
+            .map_err(|e| PyErr::new::<RuntimeError, _>(format!("Failed to write output: {e}")))?;
     } else {
         result_contents = Some(sierra_program.to_string());
     }
@@ -182,7 +172,7 @@ fn validate_tests(sierra_program: Program, test_names: &Vec<String>) -> Result<(
     };
     for test in test_names {
         let func = casm_generator.find_function(test)?;
-        if func.params.len() > 0 {
+        if !func.params.is_empty() {
             anyhow::bail!(format!(
                 "Invalid number of parameters for test {}: expected 0, got {}",
                 test,
@@ -191,7 +181,7 @@ fn validate_tests(sierra_program: Program, test_names: &Vec<String>) -> Result<(
         }
         let signature = &func.signature;
         let tp = &signature.ret_types[0];
-        let info = casm_generator.get_info(&tp);
+        let info = casm_generator.get_info(tp);
         let mut maybe_return_type_name = None;
         if info.long_id.generic_id == EnumType::ID {
             if let GenericArg::UserType(ut) = &info.long_id.generic_args[0] {
@@ -233,7 +223,7 @@ fn compile_protostar_sierra_to_casm(
         input_data,
         output_path.map(|s| s.to_string()),
     )
-    .map_err(|e| PyErr::new::<RuntimeError, _>(format!("{}", e)))?;
+    .map_err(|e| PyErr::new::<RuntimeError, _>(format!("{e}")))?;
 
     Ok(casm)
 }
@@ -250,13 +240,13 @@ fn compile_protostar_sierra_to_casm_from_path(
         input_data,
         output_path.map(|s| s.to_string()),
     )
-    .map_err(|e| PyErr::new::<RuntimeError, _>(format!("{}", e)))?;
+    .map_err(|e| PyErr::new::<RuntimeError, _>(format!("{e}")))?;
 
     Ok(casm)
 }
 
 #[pymodule]
-fn cairo_python_bindings(_py: Python, m: &PyModule) -> PyResult<()> {
+fn cairo_python_bindings(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(compile_starknet_contract_from_path))?;
     m.add_wrapped(wrap_pyfunction!(collect_tests))?;
     m.add_wrapped(wrap_pyfunction!(compile_protostar_sierra_to_casm))?;

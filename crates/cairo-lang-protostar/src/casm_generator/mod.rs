@@ -38,7 +38,7 @@ pub enum GeneratorError {
     #[error(transparent)]
     ProgramRegistryError(#[from] Box<ProgramRegistryError>),
     #[error(transparent)]
-    SierraCompilationError(#[from] CompilationError),
+    SierraCompilationError(#[from] Box<CompilationError>),
     #[error(transparent)]
     ApChangeError(#[from] ApChangeError),
     #[error(transparent)]
@@ -75,10 +75,13 @@ impl SierraCasmGenerator {
     pub fn new(
         sierra_program: cairo_lang_sierra::program::Program,
         calc_gas: bool,
-    ) -> Result<Self, GeneratorError> {
+    ) -> Result<Self, Box<GeneratorError>> {
         let metadata = create_metadata(&sierra_program, calc_gas)?;
+        // try using a fully qualified path to specify the expected types:
+        // `<std::boxed::Box<cairo_lang_sierra::program_registry::ProgramRegistryError> as
+        // std::convert::Into<T>>::into(`, `)`
         let sierra_program_registry =
-            ProgramRegistry::<CoreType, CoreLibfunc>::new(&sierra_program)?;
+            ProgramRegistry::<CoreType, CoreLibfunc>::new(&sierra_program).unwrap();
         let casm_program =
             cairo_lang_sierra_to_casm::compiler::compile(&sierra_program, &metadata, calc_gas)
                 .expect("Compilation failed.");
@@ -99,19 +102,19 @@ impl SierraCasmGenerator {
     pub fn build_casm(
         &self,
         maybe_attributed_tests: Option<Vec<String>>,
-    ) -> Result<ProtostarCasm, GeneratorError> {
+    ) -> Result<ProtostarCasm, Box<GeneratorError>> {
         let tests = match maybe_attributed_tests {
             Some(result) => result,
             None => self.collect_tests().into_iter().map(|item| item.to_string()).collect(),
         };
         if tests.is_empty() {
-            return Err(GeneratorError::NoTestsDetected);
+            return Err(Box::new(GeneratorError::NoTestsDetected));
         }
         let mut entry_codes_offsets = Vec::new();
         for test in &tests {
             let func = self.find_function(test)?;
             let initial_gas = 0;
-            let (_, _, offset) = self.create_entry_code(func, &vec![], initial_gas, 0)?;
+            let (_, _, offset) = self.create_entry_code(func, &[], initial_gas, 0)?;
             entry_codes_offsets.push(offset);
         }
 
@@ -123,8 +126,7 @@ impl SierraCasmGenerator {
         for test in &tests {
             let func = self.find_function(test)?;
             let initial_gas = 0;
-            let (proper_entry_code, _, _) =
-                self.create_entry_code(func, &vec![], initial_gas, acc)?;
+            let (proper_entry_code, _, _) = self.create_entry_code(func, &[], initial_gas, acc)?;
             if entry_codes_offsets.len() > i + 1 {
                 acc -= entry_codes_offsets[i + 1];
                 i += 1;

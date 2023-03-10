@@ -284,7 +284,7 @@ pub fn compile_at_path(path: &str) -> Result<CairoProgram, CompilationError> {
 }
 
 pub fn compile_contents(contents: &str) -> Result<CairoProgram, CompilationError> {
-    let program = ProgramParser::new().parse(&contents).unwrap();
+    let program = ProgramParser::new().parse(contents).unwrap();
 
     let gas_usage_check = true;
     let cairo_program = compile(

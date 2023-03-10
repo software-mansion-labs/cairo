@@ -49,7 +49,7 @@ impl NoGenericArgsGenericLibfunc for DeclareLibFunc {
                     vars: vec![
                         // Error reason
                         OutputVarInfo {
-                            ty: felt_ty.clone(),
+                            ty: felt_ty,
                             ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
                         },
                     ],
@@ -89,7 +89,7 @@ impl NoGenericArgsGenericLibfunc for RollLibFunc {
                     vars: vec![
                         // Error reason
                         OutputVarInfo {
-                            ty: felt_ty.clone(),
+                            ty: felt_ty,
                             ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
                         },
                     ],
@@ -128,7 +128,7 @@ impl NoGenericArgsGenericLibfunc for WarpLibFunc {
                     vars: vec![
                         // Error reason
                         OutputVarInfo {
-                            ty: felt_ty.clone(),
+                            ty: felt_ty,
                             ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
                         },
                     ],
@@ -169,7 +169,7 @@ impl NoGenericArgsGenericLibfunc for StartPrankLibFunc {
                     vars: vec![
                         // Error reason
                         OutputVarInfo {
-                            ty: felt_ty.clone(),
+                            ty: felt_ty,
                             ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
                         },
                     ],
@@ -200,7 +200,7 @@ impl NoGenericArgsGenericLibfunc for InvokeLibFunc {
                 // function_name
                 ParamSignature::new(felt_ty.clone()),
                 // calldata
-                ParamSignature::new(arr_ty.clone()),
+                ParamSignature::new(arr_ty),
             ],
             branch_signatures: vec![
                 // Success branch
@@ -213,7 +213,7 @@ impl NoGenericArgsGenericLibfunc for InvokeLibFunc {
                     vars: vec![
                         // Error reason
                         OutputVarInfo {
-                            ty: felt_ty.clone(),
+                            ty: felt_ty,
                             ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
                         },
                     ],
@@ -244,7 +244,7 @@ impl NoGenericArgsGenericLibfunc for MockCallLibFunc {
                 // function_name
                 ParamSignature::new(felt_ty.clone()),
                 // response
-                ParamSignature::new(arr_ty.clone()),
+                ParamSignature::new(arr_ty),
             ],
             branch_signatures: vec![
                 // Success branch
@@ -257,7 +257,7 @@ impl NoGenericArgsGenericLibfunc for MockCallLibFunc {
                     vars: vec![
                         // Error reason
                         OutputVarInfo {
-                            ty: felt_ty.clone(),
+                            ty: felt_ty,
                             ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
                         },
                     ],
