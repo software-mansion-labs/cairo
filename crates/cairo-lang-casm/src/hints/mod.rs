@@ -181,6 +181,11 @@ pub enum Hint {
         response_end: ResOperand,
         err_code: CellRef,
     },
+    Deploy {
+        prepared_contract: ResOperand,
+        contract_address: CellRef,
+        err_code: CellRef,
+    },
     /// Prints the values from start to end.
     /// Both must be pointers.
     DebugPrint {
@@ -434,6 +439,16 @@ impl Display for Hint {
                             response_end={response_end}
                         );
                         memory{err_code} = r.err_code
+                    "
+                )
+            }
+            Hint::Deploy { prepared_contract, contract_address, err_code } => {
+                writedoc!(
+                    f,
+                    "
+                        r = invoke(prepared_contract={prepared_contract});
+                        memory{err_code} = r.err_code
+                        memory{contract_address} = 0 if r.err_code != 0 else r.ok.contract_address
                     "
                 )
             }

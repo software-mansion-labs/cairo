@@ -15,3 +15,7 @@ extern fn invoke(
 extern fn mock_call(
     contract_address: felt, entry_point_selector: felt, response: Array::<felt>
 ) -> Result::<(), felt> nopanic;
+
+// TODO prepared_contract to be a struct
+// returns deployed `contract_address`
+extern fn deploy(prepared_contract: felt) -> Result::<felt, felt> nopanic;
