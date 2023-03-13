@@ -367,6 +367,7 @@ impl Display for Hint {
                     "
                         r = prepare(class_hash={class_hash}, calldata_start={calldata_start}, calldata_end={calldata_end});
                         memory{err_code} = r.err_code
+                        memory{contract_address} = 0 if r.err_code != 0 else r.ok[2]
                     "
                 )
             }
