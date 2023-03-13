@@ -27,12 +27,12 @@ use pyo3::wrap_pyfunction;
 mod find_tests;
 
 use cairo_lang_debug::debug::DebugWithDb;
-use itertools::Itertools;
 use cairo_lang_protostar::casm_generator::SierraCasmGenerator;
 use cairo_lang_semantic::items::functions::{ConcreteFunctionWithBodyId, GenericFunctionId};
 use cairo_lang_semantic::{ConcreteFunction, FunctionLongId};
 use cairo_lang_sierra::program::{GenericArg, Program};
 use find_tests::find_all_tests;
+use itertools::Itertools;
 
 #[pyfunction]
 fn compile_starknet_contract_from_path(
