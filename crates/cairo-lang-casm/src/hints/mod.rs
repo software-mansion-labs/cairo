@@ -183,9 +183,9 @@ pub enum Hint {
     },
     MockCall {
         contract_address: ResOperand,
-        function_name : ResOperand,
-        response_start : ResOperand,
-        response_end : ResOperand,
+        function_name: ResOperand,
+        response_start: ResOperand,
+        response_end: ResOperand,
         err_code: CellRef,
     },
     /// Prints the values from start to end.
@@ -355,13 +355,18 @@ impl Display for Hint {
                 write!(f, "syscall_handler.syscall(syscall_ptr={})", ResOperandFormatter(system))
             }
 
-            Hint::Prepare { class_hash, calldata_start, calldata_end, contract_address, err_code } => {
+            Hint::Prepare {
+                class_hash,
+                calldata_start,
+                calldata_end,
+                contract_address,
+                err_code,
+            } => {
                 writedoc!(
                     f,
                     "
                         r = prepare(class_hash={class_hash}, calldata_start={calldata_start}, calldata_end={calldata_end});
                         memory{err_code} = r.err_code
-                        memory{contract_address} = 0 if r.err_code != 0 else r.ok.2
                     "
                 )
             }
@@ -416,7 +421,13 @@ impl Display for Hint {
                     "
                 )
             }
-            Hint::MockCall { contract_address , function_name, response_start, response_end, err_code} => {
+            Hint::MockCall {
+                contract_address,
+                function_name,
+                response_start,
+                response_end,
+                err_code,
+            } => {
                 writedoc!(
                     f,
                     "
