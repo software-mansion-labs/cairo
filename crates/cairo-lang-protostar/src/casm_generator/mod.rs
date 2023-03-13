@@ -5,26 +5,27 @@ use cairo_lang_casm::instructions::Instruction;
 use cairo_lang_casm::{casm, casm_extend};
 use cairo_lang_sierra::extensions::bitwise::BitwiseType;
 use cairo_lang_sierra::extensions::core::{CoreLibfunc, CoreType};
-use cairo_lang_sierra::extensions::range_check::RangeCheckType;
-use cairo_lang_sierra::extensions::{ConcreteType, NamedType};
 use cairo_lang_sierra::extensions::ec::EcOpType;
 use cairo_lang_sierra::extensions::pedersen::PedersenType;
-use cairo_lang_sierra::program::{Function};
+use cairo_lang_sierra::extensions::range_check::RangeCheckType;
+use cairo_lang_sierra::extensions::{ConcreteType, NamedType};
+use cairo_lang_sierra::program::Function;
 use cairo_lang_sierra::program_registry::{ProgramRegistry, ProgramRegistryError};
 use cairo_lang_sierra_ap_change::{calc_ap_changes, ApChangeError};
-use cairo_lang_sierra_to_casm::metadata::{calc_metadata, Metadata, MetadataError};
 use cairo_lang_sierra_gas::gas_info::GasInfo;
 use cairo_lang_sierra_to_casm::compiler::{CairoProgram, CompilationError};
-use cairo_lang_starknet::casm_contract_class::{serialize_big_uint, deserialize_big_uint, BigIntAsHex};
+use cairo_lang_sierra_to_casm::metadata::{calc_metadata, Metadata, MetadataError};
+use cairo_lang_starknet::casm_contract_class::{
+    deserialize_big_uint, serialize_big_uint, BigIntAsHex,
+};
 use cairo_vm::vm::errors::vm_errors::VirtualMachineError;
 use itertools::chain;
-use num_bigint::BigUint;
-use num_traits::{Num, Signed};
+use num_bigint::{BigInt, BigUint};
 use num_integer::Integer;
+use num_traits::{Num, Signed};
 use serde::{Deserialize, Serialize};
-use num_bigint::BigInt;
-use thiserror::Error;   
 use smol_str::SmolStr;
+use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum GeneratorError {
@@ -42,13 +43,14 @@ pub enum GeneratorError {
     ApChangeError(#[from] ApChangeError),
     #[error(transparent)]
     VirtualMachineError(#[from] Box<VirtualMachineError>),
+    #[error("At least one test expected but none detected.")]
+    NoTestsDetected,
 }
-
 
 #[derive(Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TestEntrypoint {
     pub offset: usize,
-    pub name: String
+    pub name: String,
 }
 
 #[derive(Default, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -78,28 +80,33 @@ impl SierraCasmGenerator {
         let sierra_program_registry =
             ProgramRegistry::<CoreType, CoreLibfunc>::new(&sierra_program)?;
         let casm_program =
-            cairo_lang_sierra_to_casm::compiler::compile(&sierra_program, &metadata, calc_gas).expect("Compilation failed.");
+            cairo_lang_sierra_to_casm::compiler::compile(&sierra_program, &metadata, calc_gas)
+                .expect("Compilation failed.");
         Ok(Self { sierra_program, sierra_program_registry, casm_program })
     }
-    
+
     pub fn collect_tests(&self) -> Vec<&SmolStr> {
         self.sierra_program
-        .funcs
-        .iter()
-        .filter(|f|
-            if let Some(name) = &f.id.debug_name { name.contains("test_") } else { false }
-        )
-        .map(|f| 
-            f.id.debug_name.as_ref().expect("Expected name")
-        )
-        .collect()
+            .funcs
+            .iter()
+            .filter(
+                |f| if let Some(name) = &f.id.debug_name { name.contains("test_") } else { false },
+            )
+            .map(|f| f.id.debug_name.as_ref().expect("Expected name"))
+            .collect()
     }
-    
-    pub fn build_casm(&self, maybe_attributed_tests: Option<Vec<String>>) -> Result<ProtostarCasm, GeneratorError> {
+
+    pub fn build_casm(
+        &self,
+        maybe_attributed_tests: Option<Vec<String>>,
+    ) -> Result<ProtostarCasm, GeneratorError> {
         let tests = match maybe_attributed_tests {
             Some(result) => result,
             None => self.collect_tests().into_iter().map(|item| item.to_string()).collect(),
         };
+        if tests.is_empty() {
+            return Err(GeneratorError::NoTestsDetected);
+        }
         let mut entry_codes_offsets = Vec::new();
         for test in &tests {
             let func = self.find_function(test)?;
@@ -115,15 +122,15 @@ impl SierraCasmGenerator {
 
         for test in &tests {
             let func = self.find_function(test)?;
-            let initial_gas = 0; 
-            let (proper_entry_code, _, _) = self.create_entry_code(func, &vec![], initial_gas, acc)?;
-            if entry_codes_offsets.len() > i+1 {
-                acc -= entry_codes_offsets[i+1];
-                i+=1;
+            let initial_gas = 0;
+            let (proper_entry_code, _, _) =
+                self.create_entry_code(func, &vec![], initial_gas, acc)?;
+            if entry_codes_offsets.len() > i + 1 {
+                acc -= entry_codes_offsets[i + 1];
+                i += 1;
             }
             entry_codes.push(proper_entry_code);
         }
-
 
         let footer = self.create_code_footer();
         let prime = BigUint::from_str_radix(
@@ -134,7 +141,7 @@ impl SierraCasmGenerator {
 
         let mut bytecode = vec![];
         let mut hints = vec![];
-        
+
         for entry_code in &entry_codes {
             for instruction in entry_code {
                 if !instruction.hints.is_empty() {
@@ -145,7 +152,7 @@ impl SierraCasmGenerator {
                 }
                 bytecode.extend(instruction.assemble().encode().iter().map(|big_int| {
                     let (_q, reminder) = big_int.magnitude().div_rem(&prime);
-    
+
                     BigIntAsHex {
                         value: if big_int.is_negative() { &prime - reminder } else { reminder },
                     }
@@ -153,7 +160,7 @@ impl SierraCasmGenerator {
             }
         }
 
-        for instruction in chain!( self.casm_program.instructions.iter(), footer.iter()) {
+        for instruction in chain!(self.casm_program.instructions.iter(), footer.iter()) {
             if !instruction.hints.is_empty() {
                 hints.push((
                     bytecode.len(),
@@ -172,18 +179,15 @@ impl SierraCasmGenerator {
         let mut test_entry_points = Vec::new();
         let mut acc = 0;
         for (test, entry_code_offset) in tests.iter().zip(entry_codes_offsets.iter()) {
-            test_entry_points.push(TestEntrypoint {
-                offset: acc,
-                name: test.to_string()
-            });
+            test_entry_points.push(TestEntrypoint { offset: acc, name: test.to_string() });
             acc += entry_code_offset;
         }
-        Ok(ProtostarCasm { prime: prime, bytecode: bytecode, hints: hints, test_entry_points: test_entry_points })
+        Ok(ProtostarCasm { prime, bytecode, hints, test_entry_points })
     }
 
     // Copied from crates/cairo-lang-runner/src/lib.rs
     /// Finds first function ending with `name_suffix`.
-    fn find_function(&self, name_suffix: &str) -> Result<&Function, GeneratorError> {
+    pub fn find_function(&self, name_suffix: &str) -> Result<&Function, GeneratorError> {
         self.sierra_program
             .funcs
             .iter()
@@ -274,8 +278,9 @@ impl SierraCasmGenerator {
         let before_final_call = ctx.current_code_offset;
         let final_call_size = 3;
 
-        let offset = final_call_size + entry_offset + self.casm_program.debug_info.sierra_statement_info[func.entry_point.0].code_offset;
-        
+        let offset = final_call_size
+            + entry_offset
+            + self.casm_program.debug_info.sierra_statement_info[func.entry_point.0].code_offset;
 
         casm_extend! {ctx,
             call rel offset;
@@ -296,7 +301,7 @@ impl SierraCasmGenerator {
         .instructions
     }
 
-    fn get_info(
+    pub fn get_info(
         &self,
         ty: &cairo_lang_sierra::ids::ConcreteTypeId,
     ) -> &cairo_lang_sierra::extensions::types::TypeInfo {

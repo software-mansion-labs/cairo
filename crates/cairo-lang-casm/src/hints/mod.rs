@@ -199,6 +199,21 @@ pub enum Hint {
         size: ResOperand,
         dst: CellRef,
     },
+    SetBlockNumber {
+        value: ResOperand,
+    },
+    SetBlockTimestamp {
+        value: ResOperand,
+    },
+    SetCallerAddress {
+        value: ResOperand,
+    },
+    SetContractAddress {
+        value: ResOperand,
+    },
+    SetSequencerAddress {
+        value: ResOperand,
+    },
 }
 
 struct DerefOrImmediateFormatter<'a>(&'a DerefOrImmediate);
@@ -379,7 +394,8 @@ impl Display for Hint {
                 writedoc!(
                     f,
                     "
-                    memory{err_code} = roll(address={address}, caller_address={caller_address}).err_code; 
+                    memory{err_code} = roll(address={address}, \
+                     caller_address={caller_address}).err_code; 
                     "
                 )
             }
@@ -387,7 +403,8 @@ impl Display for Hint {
                 writedoc!(
                     f,
                     "
-                    memory{err_code} = warp(blk_timestamp={blk_timestamp}, target_contract_address={target_contract_address}).err_code; 
+                    memory{err_code} = warp(blk_timestamp={blk_timestamp}, \
+                     target_contract_address={target_contract_address}).err_code; 
                     "
                 )
             }
@@ -395,7 +412,8 @@ impl Display for Hint {
                 writedoc!(
                     f,
                     "
-                    memory{err_code} = start_prank(caller_address={caller_address}, target_contract_address={target_contract_address}).err_code;
+                    memory{err_code} = start_prank(caller_address={caller_address}, \
+                     target_contract_address={target_contract_address}).err_code;
                     "
                 )
             }
@@ -409,7 +427,6 @@ impl Display for Hint {
                     "
                 )
             }
-
             Hint::Invoke {
                 contract_address,
                 function_name,
@@ -420,7 +437,9 @@ impl Display for Hint {
                 writedoc!(
                     f,
                     "
-                        r = invoke(contract_address={contract_address}, function_name={function_name}, calldata_start={calldata_start}, calldata_end={calldata_end});
+                        r = invoke(contract_address={contract_address}, \
+                     function_name={function_name}, calldata_start={calldata_start}, \
+                     calldata_end={calldata_end});
                         memory{err_code} = r.err_code
                     "
                 )
@@ -435,7 +454,9 @@ impl Display for Hint {
                 writedoc!(
                     f,
                     "
-                        r = mock_call(contract_address={contract_address}, function_name={function_name}, response_start={response_start}, response_end={response_end});
+                        r = mock_call(contract_address={contract_address}, \
+                     function_name={function_name}, response_start={response_start}, \
+                     response_end={response_end});
                         memory{err_code} = r.err_code
                     "
                 )
@@ -487,8 +508,8 @@ impl Display for Hint {
                     "
 
                     expected_segment_index = {dict_end_ptr}.segment_index
-                    for i in range(memory[{dict_manager_ptr}]):
-                        if memory[{dict_manager_ptr} + 1].segment_index == expected_segment_index:
+                    for i in range(memory[{dict_manager_ptr} - 3]):
+                        if memory[{dict_manager_ptr} - 2].segment_index == expected_segment_index:
                             memory{dict_index} = i
                             break
                     else:
@@ -621,6 +642,21 @@ impl Display for Hint {
                     ",
                     ResOperandFormatter(size)
                 )
+            }
+            Hint::SetBlockNumber { value } => {
+                write!(f, "syscall_handler.block_number = {}", ResOperandFormatter(value))
+            }
+            Hint::SetBlockTimestamp { value } => {
+                write!(f, "syscall_handler.block_timestamp = {}", ResOperandFormatter(value))
+            }
+            Hint::SetCallerAddress { value } => {
+                write!(f, "syscall_handler.caller_address = {}", ResOperandFormatter(value))
+            }
+            Hint::SetContractAddress { value } => {
+                write!(f, "syscall_handler.contract_address = {}", ResOperandFormatter(value))
+            }
+            Hint::SetSequencerAddress { value } => {
+                write!(f, "syscall_handler.sequencer_address = {}", ResOperandFormatter(value))
             }
         }
     }
