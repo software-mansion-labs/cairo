@@ -18,4 +18,4 @@ extern fn mock_call(
 
 // TODO prepared_contract to be a struct
 // returns deployed `contract_address`
-extern fn deploy(prepared_contract: felt) -> Result::<felt, felt> nopanic;
+extern fn deploy(prepared_contract_address: felt, prepared_class_hash: felt, prepared_constructor_calldata: Array::<felt>) -> Result::<felt, felt> nopanic;

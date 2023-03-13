@@ -182,8 +182,11 @@ pub enum Hint {
         err_code: CellRef,
     },
     Deploy {
-        prepared_contract: ResOperand,
-        contract_address: CellRef,
+        prepared_contract_address: ResOperand,
+        prepared_class_hash: ResOperand,
+        prepared_constructor_calldata_start: ResOperand,
+        prepared_constructor_calldata_end: ResOperand,
+        deployed_contract_address : CellRef,
         err_code: CellRef,
     },
     /// Prints the values from start to end.
@@ -442,13 +445,18 @@ impl Display for Hint {
                     "
                 )
             }
-            Hint::Deploy { prepared_contract, contract_address, err_code } => {
+            Hint::Deploy { prepared_contract_address , prepared_class_hash, prepared_constructor_calldata_start, prepared_constructor_calldata_end, deployed_contract_address, err_code} => {
                 writedoc!(
                     f,
                     "
-                        r = invoke(prepared_contract={prepared_contract});
+                        r = deploy(
+                            prepared_contract_address={prepared_contract_address},
+                            prepared_class_hash={prepared_class_hash},
+                            prepared_constructor_calldata_start={prepared_constructor_calldata_start},
+                            prepared_constructor_calldata_end={prepared_constructor_calldata_end}
+                        );
                         memory{err_code} = r.err_code
-                        memory{contract_address} = 0 if r.err_code != 0 else r.ok.contract_address
+                        memory{deployed_contract_address} = 0 if r.err_code != 0 else r.ok.deployed_contract_address
                     "
                 )
             }
