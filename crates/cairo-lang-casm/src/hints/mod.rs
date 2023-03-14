@@ -383,7 +383,7 @@ impl Display for Hint {
                         r = prepare(class_hash={class_hash}, calldata_start={calldata_start}, calldata_end={calldata_end});
                         memory{err_code} = r.err_code
 
-                        raise Exception(r.__dir__())
+                        raise Exception(r.__dir__() + [str(r.err_code) + '<-------- rcode'])
 
                         memory{contract_address} = 0 if r.err_code != 0 else r.ok[2]
                     "
@@ -437,10 +437,10 @@ impl Display for Hint {
                 writedoc!(
                     f,
                     "
-                        r = invoke(contract_address={contract_address}, \
-                     function_name={function_name}, calldata_start={calldata_start}, \
-                     calldata_end={calldata_end});
-                        memory{err_code} = r.err_code
+                    r = invoke(contract_address={contract_address}, \
+                    function_name={function_name}, calldata_start={calldata_start}, \
+                    calldata_end={calldata_end});
+                    memory{err_code} = r.err_code
                     "
                 )
             }
@@ -454,10 +454,10 @@ impl Display for Hint {
                 writedoc!(
                     f,
                     "
-                        r = mock_call(contract_address={contract_address}, \
-                     function_name={function_name}, response_start={response_start}, \
-                     response_end={response_end});
-                        memory{err_code} = r.err_code
+                    r = mock_call(contract_address={contract_address}, \
+                    function_name={function_name}, response_start={response_start}, \
+                    response_end={response_end});
+                    memory{err_code} = r.err_code
                     "
                 )
             }

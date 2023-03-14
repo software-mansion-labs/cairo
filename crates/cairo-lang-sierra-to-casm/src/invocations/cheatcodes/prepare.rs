@@ -43,7 +43,11 @@ pub fn build_prepare(
     Ok(builder.build_from_casm_builder(
         casm_builder,
         [
-            ("Fallthrough", &[&[calldata_start, calldata_end], &[contract_address], &[class_hash]], None),
+            (
+                "Fallthrough",
+                &[&[calldata_start, calldata_end], &[contract_address], &[class_hash]],
+                None,
+            ),
             ("Failure", &[&[err_code]], Some(failure_handle_statement_id)),
         ],
         CostValidationInfo { range_check_info: None, extra_costs: None },

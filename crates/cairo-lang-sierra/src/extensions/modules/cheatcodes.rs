@@ -42,7 +42,7 @@ impl NoGenericArgsGenericLibfunc for DeclareLibFunc {
                     vars: vec![OutputVarInfo {
                         // ty: context.get_concrete_type(ClassHashType::id(), &[])?,
                         ty: felt_ty.clone(),
-                        ref_info: OutputVarReferenceInfo::SameAsParam { param_idx: 0 },
+                        ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
                     }],
                     ap_change: SierraApChange::Known { new_vars_only: false },
                 },
