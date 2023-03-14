@@ -410,6 +410,8 @@ use cheatcodes::warp;
 use cheatcodes::invoke;
 use cheatcodes::mock_call;
 use cheatcodes::deploy;
+use cheatcodes::deploy_wrapper;
+use cheatcodes::PreparedContract;
 
 // Internals.
 mod internal;
