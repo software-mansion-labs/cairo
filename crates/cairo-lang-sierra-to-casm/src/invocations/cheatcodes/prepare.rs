@@ -31,12 +31,21 @@ pub fn build_prepare(
     casm_build_extend! {casm_builder,
         tempvar err_code;
         tempvar contract_address;
+        tempvar return_class_hash;
+        tempvar constructor_calldata_start;
+        tempvar constructor_calldata_end;
         hint Prepare {
             class_hash: class_hash,
             calldata_start: calldata_start,
             calldata_end: calldata_end
-        } into {contract_address: contract_address, err_code: err_code};
-        ap += 2;
+        } into {
+            contract_address: contract_address,
+            return_class_hash: return_class_hash,
+            constructor_calldata_start: constructor_calldata_start,
+            constructor_calldata_end: constructor_calldata_end,
+            err_code: err_code
+        };
+        ap += 5;
         jump Failure if err_code != 0;
     };
 
@@ -45,7 +54,7 @@ pub fn build_prepare(
         [
             (
                 "Fallthrough",
-                &[&[calldata_start, calldata_end], &[contract_address], &[class_hash]],
+                &[&[constructor_calldata_start, constructor_calldata_end], &[contract_address], &[return_class_hash]],
                 None,
             ),
             ("Failure", &[&[err_code]], Some(failure_handle_statement_id)),

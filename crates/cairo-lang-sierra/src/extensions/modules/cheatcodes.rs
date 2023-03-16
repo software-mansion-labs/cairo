@@ -163,7 +163,7 @@ impl NoGenericArgsGenericLibfunc for PrepareLibFunc {
                         // Constructor Calldata
                         OutputVarInfo {
                             ty: arr_ty.clone(),
-                            ref_info: OutputVarReferenceInfo::SameAsParam { param_idx: 1 },
+                            ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
                         },
                         // Contract Address
                         OutputVarInfo {
@@ -173,7 +173,7 @@ impl NoGenericArgsGenericLibfunc for PrepareLibFunc {
                         // Class Hash
                         OutputVarInfo {
                             ty: felt_ty.clone(),
-                            ref_info: OutputVarReferenceInfo::SameAsParam { param_idx: 0 },
+                            ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
                         },
                     ],
                     ap_change: SierraApChange::Known { new_vars_only: false },
