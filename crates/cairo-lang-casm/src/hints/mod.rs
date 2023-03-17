@@ -504,20 +504,20 @@ impl Display for Hint {
                 writedoc!(
                     f,
                     "
-                        r = prepare(
-                            class_hash={class_hash},
-                            calldata_start={calldata_start},
-                            calldata_end={calldata_end}
-                        )
-                        memory{err_code} = r.err_code
-                        memory{constructor_calldata_start} = {calldata_start}[0] if r.err_code != \
-                     0 else 0
-                        memory{constructor_calldata_end} = {calldata_end}[0] if r.err_code != 0 \
-                     else 0
-                        memory{contract_address} = 0 if r.err_code != 0 else \
+                    r = prepare_tp(
+                        class_hash={class_hash},
+                        calldata_start={calldata_start},
+                        calldata_end={calldata_end}
+                    )
+                    memory{err_code} = r.err_code
+                    memory{contract_address} = 0 if r.err_code != 0 else \
                      r.ok.prepared_contract.contract_address
-                        memory{return_class_hash} = 0 if r.err_code != 0 else \
+                    memory{return_class_hash} = 0 if r.err_code != 0 else \
                      r.ok.prepared_contract.return_class_hash
+                    memory{constructor_calldata_start} = memory[{calldata_start}[0]] if r.err_code \
+                     != 0 else 0
+                    memory{constructor_calldata_end} = memory[{calldata_end}[0]] if r.err_code != \
+                     0 else 0
                     "
                 )
             }
