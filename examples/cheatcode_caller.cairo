@@ -87,11 +87,11 @@ fn test_mock_call() {
     }
 }
 
-fn test_deploy() {
+fn test_deploy_tp() {
     let mut arr = ArrayTrait::new();
     arr.append(1);
     arr.append(2);
-    match deploy(123, 123, arr) {
+    match deploy_tp(123, 123, arr) {
         Result::Ok(deployed_contract_address) => (),
         Result::Err(x) => {
             let mut data = array_new::<felt>();
@@ -101,12 +101,12 @@ fn test_deploy() {
     }
 }
 
-fn test_deploy_wrapper() {
+fn test_deploy() {
     let mut arr = ArrayTrait::new();
     arr.append(1);
     arr.append(2);
     arr.append(3);
-    match deploy_wrapper(
+    match deploy(
         PreparedContract { contract_address: 123, class_hash: 123, constructor_calldata: arr }
     ) {
         Result::Ok(deployed_contract_address) => (),

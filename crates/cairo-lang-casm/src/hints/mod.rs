@@ -479,7 +479,7 @@ impl Display for Hint {
                 writedoc!(
                     f,
                     "
-                    r = deploy(
+                    r = deploy_tp(
                         prepared_contract_address={prepared_contract_address},
                         prepared_class_hash={prepared_class_hash},
                         prepared_constructor_calldata_start={prepared_constructor_calldata_start},

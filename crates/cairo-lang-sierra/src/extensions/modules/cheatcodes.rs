@@ -316,7 +316,7 @@ impl NoGenericArgsGenericLibfunc for MockCallLibFunc {
 #[derive(Default)]
 pub struct DeployLibFunc {}
 impl NoGenericArgsGenericLibfunc for DeployLibFunc {
-    const STR_ID: &'static str = "deploy";
+    const STR_ID: &'static str = "deploy_tp";
 
     fn specialize_signature(
         &self,

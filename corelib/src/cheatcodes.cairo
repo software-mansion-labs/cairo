@@ -24,15 +24,15 @@ struct PreparedContract {
     constructor_calldata: Array::<felt>,
 }
 // returns deployed `contract_address`
-extern fn deploy(
+extern fn deploy_tp(
     prepared_contract_address: felt,
     prepared_class_hash: felt,
     prepared_constructor_calldata: Array::<felt>
 ) -> Result::<felt, felt> nopanic;
 
-fn deploy_wrapper(prepared_contract: PreparedContract) -> Result::<felt, felt> nopanic {
+fn deploy(prepared_contract: PreparedContract) -> Result::<felt, felt> nopanic {
     let PreparedContract{contract_address, class_hash, constructor_calldata } = prepared_contract;
-    deploy(contract_address, class_hash, constructor_calldata)
+    deploy_tp(contract_address, class_hash, constructor_calldata)
 }
 
 extern fn prepare_tp(
