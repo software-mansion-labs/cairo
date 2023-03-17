@@ -43,7 +43,8 @@ fn prepare(class_hash: felt, calldata: Array::<felt>) -> Result::<PreparedContra
     match prepare_tp(class_hash, calldata) {
         Result::Ok((
             constructor_calldata, contract_address, class_hash
-        )) => Result::<PreparedContract, felt>::Ok(
+        )) => Result::<PreparedContract,
+        felt>::Ok(
             PreparedContract {
                 constructor_calldata: constructor_calldata,
                 contract_address: contract_address,
