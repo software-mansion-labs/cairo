@@ -413,9 +413,13 @@ use cheatcodes::invoke;
 use cheatcodes::mock_call;
 use cheatcodes::deploy;
 use cheatcodes::deploy_tp;
+use cheatcodes::deploy_cairo0;
+use cheatcodes::deploy_tp_cairo0;
 use cheatcodes::PreparedContract;
 use cheatcodes::prepare_tp;
 use cheatcodes::prepare;
+use cheatcodes::prepare_tp_cairo0;
+use cheatcodes::prepare_cairo0;
 use cheatcodes::deploy_contract;
 
 // Internals.
