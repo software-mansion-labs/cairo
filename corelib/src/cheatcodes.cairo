@@ -72,7 +72,9 @@ extern fn prepare_tp_cairo0(
     class_hash: felt, calldata: Array::<felt>
 ) -> Result::<(Array::<felt>, felt, felt), felt> nopanic;
 
-fn prepare_cairo0(class_hash: felt, calldata: Array::<felt>) -> Result::<PreparedContract, felt> nopanic {
+fn prepare_cairo0(
+    class_hash: felt, calldata: Array::<felt>
+) -> Result::<PreparedContract, felt> nopanic {
     match prepare_tp(class_hash, calldata) {
         Result::Ok((
             constructor_calldata, contract_address, class_hash
