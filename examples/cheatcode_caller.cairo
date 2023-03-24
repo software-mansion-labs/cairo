@@ -205,3 +205,17 @@ fn test_deploy_contract() {
         },
     }
 }
+
+fn test_deploy_contract_cairo0() {
+    let mut arr = ArrayTrait::new();
+    arr.append(0xBAD);
+    arr.append(0xC0DE);
+    match deploy_contract_cairo0(0xBEEF, arr) {
+        Result::Ok(_) => (),
+        Result::Err(x) => {
+            let mut data = array_new::<felt>();
+            array_append::<felt>(ref data, x);
+            panic(data)
+        },
+    }
+}

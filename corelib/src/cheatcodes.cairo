@@ -93,3 +93,9 @@ fn deploy_contract(contract: felt, calldata: Array::<felt>) -> Result::<felt, fe
     let prepared_contract = prepare(class_hash, calldata)?;
     deploy(prepared_contract)
 }
+
+fn deploy_contract_cairo0(contract: felt, calldata: Array::<felt>) -> Result::<felt, felt> nopanic {
+    let class_hash: felt = declare_cairo0(contract)?;
+    let prepared_contract = prepare_cairo0(class_hash, calldata)?;
+    deploy_cairo0(prepared_contract)
+}
