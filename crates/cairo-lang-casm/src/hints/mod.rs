@@ -559,7 +559,7 @@ impl Display for Hint {
                     while it != end:
                         calldata.append(memory[it])
                         it = it + 1
-                    r = deploy_tp(
+                    r = deploy_tp_cairo0(
                         contract_address=memory[{prepared_contract_address}[0]],
                         class_hash=memory[{prepared_class_hash}[0]],
                         constructor_calldata=calldata,
@@ -624,7 +624,7 @@ impl Display for Hint {
                     while it != end:
                         calldata.append(memory[it])
                         it = it + 1
-                    r = prepare_tp(
+                    r = prepare_tp_cairo0(
                         class_hash=memory[{class_hash}[0]],
                         calldata=calldata
                     )
