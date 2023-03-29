@@ -60,7 +60,7 @@ pub fn build_call(
     Ok(builder.build_from_casm_builder(
         casm_builder,
         [
-            ("Fallthrough", &[&[return_data_start, return_data_start]], None),
+            ("Fallthrough", &[&[return_data_start, return_data_end]], None),
             ("Failure", &[&[err_code]], Some(failure_handle_statement_id)),
         ],
         CostValidationInfo { range_check_info: None, extra_costs: None },
