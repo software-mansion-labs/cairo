@@ -673,10 +673,13 @@ impl Display for Hint {
                         calldata=calldata
                     )
                     memory{err_code} = r.err_code
-                    memory{return_data_start} = memory[{calldata_start}[0]] if r.err_code != 0 \
-                     else 0
-                    memory{return_data_end} = memory[{calldata_end}[0]] if r.err_code != 0 else 0
-                    print('+++++++ here', r)
+                    return_data_start = segments.add()
+                    return_data_end = return_data_start
+                    if r.err_code == 0 and r.ok.return_data:
+                        return_data_end = segments.load_data(return_data_start, r.ok.return_data + \
+                     [0]) - 1
+                    memory{return_data_start} = return_data_start
+                    memory{return_data_end} = return_data_end
                     "
                 )
             }
