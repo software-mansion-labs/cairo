@@ -544,7 +544,6 @@ dependencies = [
  "env_logger",
  "indoc 1.0.7",
  "itertools",
- "pretty_assertions",
  "salsa",
  "smol_str",
  "test-case",
