@@ -112,7 +112,7 @@ impl SierraCasmGenerator {
         let mut entry_codes_offsets = Vec::new();
         for test in &tests {
             let func = self.find_function(test)?;
-            let initial_gas = 0;
+            let initial_gas = 100000000000;
             let (_, _, offset) = self.create_entry_code(func, &vec![], initial_gas, 0)?;
             entry_codes_offsets.push(offset);
         }

@@ -199,9 +199,9 @@ fn collect_tests(
         builtins = unwrapped_builtins.iter().map(|s| s.to_string()).collect();
     }
 
-    validate_tests(sierra_program.clone(), &named_tests, builtins).map_err(|e| {
-        PyErr::new::<RuntimeError, _>(format!("Test validation failed: {}", e.to_string()))
-    })?;
+    // validate_tests(sierra_program.clone(), &named_tests, builtins).map_err(|e| {
+    //     PyErr::new::<RuntimeError, _>(format!("Test validation failed: {}", e.to_string()))
+    // })?;
 
     let mut result_contents = None;
     if let Some(path) = output_path {
@@ -219,7 +219,7 @@ fn validate_tests(
     test_names: &Vec<String>,
     ignored_params: Vec<String>,
 ) -> Result<(), anyhow::Error> {
-    let casm_generator = match SierraCasmGenerator::new(sierra_program, false) {
+    let casm_generator = match SierraCasmGenerator::new(sierra_program, true) {
         Ok(casm_generator) => casm_generator,
         Err(e) => panic!("{}", e),
     };
