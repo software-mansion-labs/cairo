@@ -12,7 +12,7 @@ pub fn build_protostar_casm(
     contents: &str,
 ) -> anyhow::Result<String> {
     let program: Program = ProgramParser::new().parse(&contents).unwrap();
-    let casm_generator = match SierraCasmGenerator::new(program, false) {
+    let casm_generator = match SierraCasmGenerator::new(program, true) {
         Ok(casm_generator) => casm_generator,
         Err(e) => panic!("{}", e),
     };
