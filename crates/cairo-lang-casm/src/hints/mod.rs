@@ -618,7 +618,7 @@ impl Display for Hint {
                     constructor_calldata_end = constructor_calldata_start
                     if r.err_code == 0 and r.ok.constructor_calldata:
                         constructor_calldata_end = segments.load_data(constructor_calldata_start, \
-                            r.ok.constructor_calldata + [0]) - 1
+                     r.ok.constructor_calldata + [0]) - 1
                     memory{constructor_calldata_start} = constructor_calldata_start
                     memory{constructor_calldata_end} = constructor_calldata_end
                     "
