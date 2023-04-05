@@ -12,6 +12,7 @@ use cairo_lang_diagnostics::ToOption;
 use cairo_lang_plugins::config::ConfigPlugin;
 use cairo_lang_plugins::derive::DerivePlugin;
 use cairo_lang_plugins::panicable::PanicablePlugin;
+use cairo_lang_starknet::plugin::StarkNetPlugin;
 use cairo_lang_protostar::build_protostar_casm_from_sierra;
 use cairo_lang_semantic::plugin::SemanticPlugin;
 use cairo_lang_sierra::extensions::enm::EnumType;
@@ -122,6 +123,7 @@ fn collect_tests(
         Arc::new(DerivePlugin {}),
         Arc::new(PanicablePlugin {}),
         Arc::new(ConfigPlugin { configs: HashSet::from(["test".to_string()]) }),
+        Arc::new(StarkNetPlugin {}),
     ];
     let db = &mut RootDatabase::builder().with_plugins(plugins).detect_corelib().build().map_err(
         |e| PyErr::new::<RuntimeError, _>(format!("Failed to build database: {}", e.to_string())),
