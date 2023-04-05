@@ -21,12 +21,12 @@ pub fn build_call(
     }
     let contract_address = optional_contract_address.ok_or(InvocationError::InvalidGenericArg)?;
 
-    // function name
-    let mut optional_function_name = None;
-    if let [maybe_function_name] = refs[1].cells.deref() {
-        optional_function_name = Some(maybe_function_name);
+    // function selector
+    let mut optional_function_selector = None;
+    if let [maybe_function_function_selector] = refs[1].cells.deref() {
+        optional_function_selector = Some(maybe_function_function_selector);
     }
-    let function_name = optional_function_name.ok_or(InvocationError::InvalidGenericArg)?;
+    let function_selector = optional_function_selector.ok_or(InvocationError::InvalidGenericArg)?;
 
     // calldata
     let [calldata_start, calldata_end] = refs[2].try_unpack()?;
@@ -34,7 +34,7 @@ pub fn build_call(
     let mut casm_builder = CasmBuilder::default();
     add_input_variables! {casm_builder,
         deref contract_address;
-        deref function_name;
+        deref function_selector;
         deref calldata_start;
         deref calldata_end;
     };
@@ -45,7 +45,7 @@ pub fn build_call(
         tempvar return_data_end;
         hint Call {
             contract_address: contract_address,
-            function_name: function_name,
+            function_selector: function_selector,
             calldata_start: calldata_start,
             calldata_end: calldata_end
         } into {

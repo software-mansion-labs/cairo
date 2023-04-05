@@ -222,7 +222,7 @@ pub enum Hint {
     },
     Call {
         contract_address: ResOperand,
-        function_name: ResOperand,
+        function_selector: ResOperand,
         calldata_start: ResOperand,
         calldata_end: ResOperand,
         return_data_start: CellRef,
@@ -659,7 +659,7 @@ impl Display for Hint {
             }
             Hint::Call {
                 contract_address,
-                function_name,
+                function_selector,
                 calldata_start,
                 calldata_end,
                 return_data_start,
@@ -677,7 +677,7 @@ impl Display for Hint {
                         it = it + 1
                     r = call(
                         contract_address=memory[{contract_address}[0]],
-                        function_name=memory[{function_name}[0]],
+                        function_selector=memory[{function_selector}[0]],
                         calldata=calldata
                     )
                     memory{err_code} = r.err_code
