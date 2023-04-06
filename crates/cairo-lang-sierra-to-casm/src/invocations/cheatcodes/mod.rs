@@ -4,7 +4,6 @@ use self::call::build_call;
 use self::declare::build_declare;
 use self::declare_cairo0::build_declare_cairo0;
 use self::deploy::build_deploy;
-use self::deploy_cairo0::build_deploy_cairo0;
 use self::invoke::build_invoke;
 use self::mock_call::build_mock_call;
 use self::prepare::build_prepare;
@@ -20,7 +19,6 @@ mod call;
 mod declare;
 mod declare_cairo0;
 mod deploy;
-mod deploy_cairo0;
 mod invoke;
 mod mock_call;
 mod prepare;
@@ -45,7 +43,6 @@ pub fn build(
         CheatcodesConcreteLibFunc::Invoke(_) => build_invoke(builder),
         CheatcodesConcreteLibFunc::MockCall(_) => build_mock_call(builder),
         CheatcodesConcreteLibFunc::Deploy(_) => build_deploy(builder),
-        CheatcodesConcreteLibFunc::DeployCairo0(_) => build_deploy_cairo0(builder),
         CheatcodesConcreteLibFunc::Prepare(_) => build_prepare(builder),
         CheatcodesConcreteLibFunc::PrepareCairo0(_) => build_prepare_cairo0(builder),
         CheatcodesConcreteLibFunc::Call(_) => build_call(builder),

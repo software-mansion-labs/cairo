@@ -39,17 +39,6 @@ fn deploy(prepared_contract: PreparedContract) -> Result::<felt252, felt252> nop
     deploy_tp(contract_address, class_hash, constructor_calldata)
 }
 
-extern fn deploy_tp_cairo0(
-    prepared_contract_address: felt252,
-    prepared_class_hash: felt252,
-    prepared_constructor_calldata: Array::<felt252>
-) -> Result::<felt252, felt252> nopanic;
-
-fn deploy_cairo0(prepared_contract: PreparedContract) -> Result::<felt252, felt252> nopanic {
-    let PreparedContract{contract_address, class_hash, constructor_calldata } = prepared_contract;
-    deploy_tp_cairo0(contract_address, class_hash, constructor_calldata)
-}
-
 extern fn prepare_tp(
     class_hash: felt252, calldata: Array::<felt252>
 ) -> Result::<(Array::<felt252>, felt252, felt252), felt252> nopanic;

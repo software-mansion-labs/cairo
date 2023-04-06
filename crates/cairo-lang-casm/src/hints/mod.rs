@@ -192,14 +192,6 @@ pub enum Hint {
         deployed_contract_address: CellRef,
         err_code: CellRef,
     },
-    DeployCairo0 {
-        prepared_contract_address: ResOperand,
-        prepared_class_hash: ResOperand,
-        prepared_constructor_calldata_start: ResOperand,
-        prepared_constructor_calldata_end: ResOperand,
-        deployed_contract_address: CellRef,
-        err_code: CellRef,
-    },
     Prepare {
         class_hash: ResOperand,
         calldata_start: ResOperand,
@@ -556,34 +548,6 @@ impl Display for Hint {
                     memory{err_code} = r.err_code
                     memory{deployed_contract_address} = 0 if r.err_code != 0 else \
                      r.ok.contract_address
-                    "
-                )
-            }
-            Hint::DeployCairo0 {
-                prepared_contract_address,
-                prepared_class_hash,
-                prepared_constructor_calldata_start,
-                prepared_constructor_calldata_end,
-                deployed_contract_address,
-                err_code,
-            } => {
-                writedoc!(
-                    f,
-                    "
-                    calldata = []
-                    it = memory[{prepared_constructor_calldata_start}[0]]
-                    end = memory[{prepared_constructor_calldata_end}[0]]
-                    while it != end:
-                        calldata.append(memory[it])
-                        it = it + 1
-                    r = deploy_tp_cairo0(
-                        contract_address=memory[{prepared_contract_address}[0]],
-                        class_hash=memory[{prepared_class_hash}[0]],
-                        constructor_calldata=calldata,
-                    );
-                    memory{err_code} = r.err_code
-                    memory{deployed_contract_address} = 0 if r.err_code != 0 else \
-                     r.ok.deployed_contract_address
                     "
                 )
             }
