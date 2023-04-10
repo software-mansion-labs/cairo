@@ -3,7 +3,6 @@ use super::array::{ArrayLibfunc, ArrayType};
 use super::bitwise::{BitwiseLibfunc, BitwiseType};
 use super::boolean::BoolLibfunc;
 use super::branch_align::BranchAlignLibfunc;
-use super::builtin_cost::{BuiltinCostLibfunc, BuiltinCostsType};
 use super::casts::CastLibfunc;
 use super::cheatcodes::CheatcodesLibFunc;
 use super::debug::DebugLibfunc;
@@ -12,6 +11,7 @@ use super::duplicate::DupLibfunc;
 use super::ec::{EcLibfunc, EcOpType, EcPointType, EcStateType};
 use super::enm::{EnumLibfunc, EnumType};
 use super::felt252_dict::{Felt252DictLibfunc, Felt252DictType};
+use super::gas::BuiltinCostsType;
 use super::modules::boxing::{BoxLibfunc, BoxType};
 use super::modules::felt252::{Felt252Libfunc, Felt252Type};
 use super::modules::function_call::FunctionCallLibfunc;
@@ -76,7 +76,6 @@ define_libfunc_hierarchy! {
         BranchAlign(BranchAlignLibfunc),
         Bool(BoolLibfunc),
         Box(BoxLibfunc),
-        BuiltinCost(BuiltinCostLibfunc),
         Cast(CastLibfunc),
         Drop(DropLibfunc),
         Dup(DupLibfunc),
