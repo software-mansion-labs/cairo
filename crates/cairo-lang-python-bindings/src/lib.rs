@@ -32,7 +32,8 @@ fn compile_starknet_contract_to_sierra_from_path(
     output_path: Option<&str>,
     maybe_cairo_paths: Option<Vec<&str>>,
 ) -> PyResult<Option<String>> {
-    assert_path_is_dir(input_path).map_err(|e| PyErr::new::<RuntimeError, _>(format!("{:?}", e)))?;
+    assert_path_is_dir(input_path)
+        .map_err(|e| PyErr::new::<RuntimeError, _>(format!("{:?}", e)))?;
     let sierra = starknet_cairo_to_sierra(input_path, maybe_cairo_paths)
         .map_err(|e| PyErr::new::<RuntimeError, _>(format!("{:?}", e)))?;
 
@@ -66,7 +67,8 @@ fn compile_starknet_contract_to_casm_from_path(
     output_path: Option<&str>,
     maybe_cairo_paths: Option<Vec<&str>>,
 ) -> PyResult<Option<String>> {
-    assert_path_is_dir(input_path).map_err(|e| PyErr::new::<RuntimeError, _>(format!("{:?}", e)))?;
+    assert_path_is_dir(input_path)
+        .map_err(|e| PyErr::new::<RuntimeError, _>(format!("{:?}", e)))?;
     let casm = starknet_cairo_to_casm(input_path, maybe_cairo_paths)
         .map_err(|e| PyErr::new::<RuntimeError, _>(format!("{:?}", e)))?;
 
@@ -105,7 +107,8 @@ fn compile_starknet_contract_sierra_to_casm_from_path(
     input_path: &str,
     output_path: Option<&str>,
 ) -> PyResult<Option<String>> {
-    assert_path_is_dir(input_path).map_err(|e| PyErr::new::<RuntimeError, _>(format!("{:?}", e)))?;
+    assert_path_is_dir(input_path)
+        .map_err(|e| PyErr::new::<RuntimeError, _>(format!("{:?}", e)))?;
     let sierra = fs::read_to_string(input_path).expect("Could not read file!");
     let casm = starknet_sierra_to_casm(&sierra)
         .map_err(|e| PyErr::new::<RuntimeError, _>(format!("{:?}", e)))?;
