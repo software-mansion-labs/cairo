@@ -314,7 +314,7 @@ version = "1.0.0-alpha.6"
 dependencies = [
  "cairo-lang-utils",
  "env_logger",
- "indoc 1.0.7",
+ "indoc 2.0.1",
  "itertools",
  "num-bigint",
  "num-traits 0.2.15",
@@ -373,7 +373,7 @@ dependencies = [
  "cairo-lang-utils",
  "env_logger",
  "indexmap",
- "indoc 1.0.7",
+ "indoc 2.0.1",
  "itertools",
  "pretty_assertions",
  "salsa",
@@ -389,7 +389,7 @@ dependencies = [
  "cairo-lang-proc-macros",
  "cairo-lang-utils",
  "env_logger",
- "indoc 1.0.7",
+ "indoc 2.0.1",
  "itertools",
  "pretty_assertions",
  "salsa",
@@ -404,7 +404,7 @@ dependencies = [
  "env_logger",
  "good_lp",
  "indexmap",
- "indoc 1.0.7",
+ "indoc 2.0.1",
  "itertools",
  "test-case",
  "test-log",
@@ -467,7 +467,7 @@ dependencies = [
  "cairo-lang-starknet",
  "cairo-lang-syntax",
  "cairo-lang-utils",
- "indoc 1.0.7",
+ "indoc 2.0.1",
  "log",
  "lsp-types",
  "salsa",
@@ -498,7 +498,7 @@ dependencies = [
  "env_logger",
  "id-arena",
  "indexmap",
- "indoc 1.0.7",
+ "indoc 2.0.1",
  "itertools",
  "log",
  "num-bigint",
@@ -544,7 +544,7 @@ dependencies = [
  "cairo-lang-test-utils",
  "cairo-lang-utils",
  "env_logger",
- "indoc 1.0.7",
+ "indoc 2.0.1",
  "itertools",
  "salsa",
  "serde_json",
@@ -568,7 +568,7 @@ name = "cairo-lang-project"
 version = "1.0.0-alpha.6"
 dependencies = [
  "cairo-lang-filesystem",
- "indoc 1.0.7",
+ "indoc 2.0.1",
  "serde",
  "smol_str",
  "test-log",
@@ -662,7 +662,7 @@ dependencies = [
  "cairo-lang-utils",
  "env_logger",
  "id-arena",
- "indoc 1.0.7",
+ "indoc 2.0.1",
  "itertools",
  "log",
  "num-bigint",
@@ -686,7 +686,7 @@ dependencies = [
  "convert_case",
  "derivative",
  "env_logger",
- "indoc 1.0.7",
+ "indoc 2.0.1",
  "itertools",
  "lalrpop",
  "lalrpop-util",
@@ -711,7 +711,7 @@ dependencies = [
  "cairo-lang-sierra",
  "cairo-lang-utils",
  "env_logger",
- "indoc 1.0.7",
+ "indoc 2.0.1",
  "itertools",
  "test-case",
  "test-log",
@@ -727,7 +727,7 @@ dependencies = [
  "cairo-lang-test-utils",
  "cairo-lang-utils",
  "env_logger",
- "indoc 1.0.7",
+ "indoc 2.0.1",
  "itertools",
  "pretty_assertions",
  "test-case",
@@ -755,7 +755,7 @@ dependencies = [
  "env_logger",
  "id-arena",
  "indexmap",
- "indoc 1.0.7",
+ "indoc 2.0.1",
  "itertools",
  "log",
  "num-bigint",
@@ -780,7 +780,7 @@ dependencies = [
  "cairo-lang-utils",
  "clap",
  "env_logger",
- "indoc 1.0.7",
+ "indoc 2.0.1",
  "itertools",
  "log",
  "num-bigint",
@@ -817,7 +817,7 @@ dependencies = [
  "convert_case",
  "env_logger",
  "genco",
- "indoc 1.0.7",
+ "indoc 2.0.1",
  "itertools",
  "log",
  "num-bigint",
@@ -1810,9 +1810,9 @@ dependencies = [
 
 [[package]]
 name = "indoc"
-version = "1.0.7"
+version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adab1eaa3408fb7f0c777a73e7465fd5656136fc93b670eb6df3c88c2c1344e3"
+checksum = "9f2cb48b81b1dc9f39676bf99f5499babfec7cd8fe14307f7b3d747208fb5690"
 
 [[package]]
 name = "indoc-impl"
