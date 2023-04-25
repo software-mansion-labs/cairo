@@ -1,4 +1,3 @@
-use std::cell::Cell;
 use std::fmt::{Display, Formatter};
 
 use indoc::writedoc;
@@ -231,6 +230,13 @@ pub enum Hint {
         calldata_end: ResOperand,
         return_data_start: CellRef,
         return_data_end: CellRef,
+        panic_data_start: CellRef,
+        panic_data_end: CellRef,
+    },
+    Print {
+        data_start: ResOperand,
+        data_end: ResOperand,
+        format: ResOperand,
         panic_data_start: CellRef,
         panic_data_end: CellRef,
     },
@@ -735,6 +741,30 @@ impl Display for Hint {
 
                     memory{return_data_start} = return_data_start
                     memory{return_data_end} = return_data_end
+                    "
+                )
+            }
+            Hint::Print {
+                data_start,
+                data_end,
+                format,
+                panic_data_start,
+                panic_data_end,
+            } => {
+                writedoc!(
+                    f,
+                    "
+                    data = []
+                    it = memory[{data_start}[0]]
+                    end = memory[{data_end}[0]]
+                    while it != end:
+                        data.append(memory[it])
+                        it = it + 1
+                    print('here 1:', memory[{format}])
+                    print('here 2:', data)
+
+                    memory{panic_data_start} = 0
+                    memory{panic_data_end} = 0
                     "
                 )
             }

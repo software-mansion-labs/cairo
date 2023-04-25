@@ -24,6 +24,7 @@ define_libfunc_hierarchy! {
         Prepare(PrepareLibFunc),
         PrepareCairo0(PrepareCairo0LibFunc),
         Call(CallLibFunc),
+        Print(PrintLibFunc),
     }, CheatcodesConcreteLibFunc
 }
 
@@ -576,6 +577,45 @@ impl NoGenericArgsGenericLibfunc for CallLibFunc {
                             ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
                         },
                     ],
+                    ap_change: SierraApChange::Known { new_vars_only: false },
+                },
+                BranchSignature {
+                    // Panic data
+                    vars: vec![OutputVarInfo {
+                        ty: arr_ty.clone(),
+                        ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
+                    }],
+                    ap_change: SierraApChange::Known { new_vars_only: false },
+                },
+            ],
+            fallthrough: Some(0),
+        })
+    }
+}
+
+
+#[derive(Default)]
+pub struct PrintLibFunc {}
+impl NoGenericArgsGenericLibfunc for PrintLibFunc {
+    const STR_ID: &'static str = "print_format";
+
+    fn specialize_signature(
+        &self,
+        context: &dyn SignatureSpecializationContext,
+    ) -> Result<LibfuncSignature, SpecializationError> {
+        let felt_ty = context.get_concrete_type(Felt252Type::id(), &[])?;
+        let arr_ty = context.get_wrapped_concrete_type(ArrayType::id(), felt_ty.clone())?;
+        Ok(LibfuncSignature {
+            param_signatures: vec![
+                // data
+                ParamSignature::new(arr_ty.clone()),
+                // format
+                ParamSignature::new(felt_ty.clone()),
+            ],
+            branch_signatures: vec![
+                // Success branch
+                BranchSignature {
+                    vars: vec![],
                     ap_change: SierraApChange::Known { new_vars_only: false },
                 },
                 BranchSignature {

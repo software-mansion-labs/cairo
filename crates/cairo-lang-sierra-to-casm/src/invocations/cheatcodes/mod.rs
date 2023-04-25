@@ -13,6 +13,7 @@ use self::roll::build_roll;
 use self::start_prank::build_start_prank;
 use self::stop_prank::build_stop_prank;
 use self::warp::build_warp;
+use self::print::build_print;
 use super::{CompiledInvocation, CompiledInvocationBuilder};
 use crate::invocations::InvocationError;
 
@@ -29,6 +30,7 @@ mod roll;
 mod start_prank;
 mod stop_prank;
 mod warp;
+mod print;
 
 /// Builds instructions for Sierra array operations.
 pub fn build(
@@ -49,5 +51,6 @@ pub fn build(
         CheatcodesConcreteLibFunc::Prepare(_) => build_prepare(builder),
         CheatcodesConcreteLibFunc::PrepareCairo0(_) => build_prepare_cairo0(builder),
         CheatcodesConcreteLibFunc::Call(_) => build_call(builder),
+        CheatcodesConcreteLibFunc::Print(_) => build_print(builder),
     }
 }

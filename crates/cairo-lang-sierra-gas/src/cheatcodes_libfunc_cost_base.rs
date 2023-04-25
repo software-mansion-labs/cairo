@@ -20,5 +20,6 @@ pub fn cheatcodes_libfunc_cost_base<Ops: CostOperations>(
         CheatcodesConcreteLibFunc::Prepare(_) => vec![ops.steps(2), ops.steps(2)],
         CheatcodesConcreteLibFunc::PrepareCairo0(_) => vec![ops.steps(2), ops.steps(2)],
         CheatcodesConcreteLibFunc::Call(_) => vec![ops.steps(3), ops.steps(3)],
+        CheatcodesConcreteLibFunc::Print(_) => vec![ops.steps(3), ops.steps(3)],
     }
 }

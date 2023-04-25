@@ -234,3 +234,15 @@ fn test_call() {
         },
     }
 }
+
+#[test]
+fn test_print() {
+    print(123);
+    print('aaa');
+
+    let mut arr = ArrayTrait::new();
+    arr.append(12);
+    arr.append(17);
+    arr.append(21);
+    print_array(arr);
+}

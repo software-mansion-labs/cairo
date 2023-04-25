@@ -421,6 +421,9 @@ use cheatcodes::prepare_cairo0;
 use cheatcodes::deploy_contract;
 use cheatcodes::deploy_contract_cairo0;
 use cheatcodes::call;
+use cheatcodes::print;
+use cheatcodes::print_array;
+use cheatcodes::print_format;
 
 // Internals.
 mod internal;
