@@ -41,7 +41,6 @@ fn compile_starknet_contract_to_sierra_from_path(
         fs::write(path, sierra).map_err(|e| {
             PyErr::new::<RuntimeError, _>(format!("Failed to write output: {:?}", e))
         })?;
-        return Ok(None);
     }
     Ok(Some(sierra))
 }
@@ -76,7 +75,6 @@ fn compile_starknet_contract_to_casm_from_path(
         fs::write(path, casm).map_err(|e| {
             PyErr::new::<RuntimeError, _>(format!("Failed to write output: {:?}", e))
         })?;
-        return Ok(None);
     }
     Ok(Some(casm))
 }
@@ -115,7 +113,6 @@ fn compile_starknet_contract_sierra_to_casm_from_path(
         fs::write(path, casm).map_err(|e| {
             PyErr::new::<RuntimeError, _>(format!("Failed to write output: {:?}", e))
         })?;
-        return Ok(None);
     }
     Ok(Some(casm))
 }
