@@ -245,4 +245,8 @@ fn test_print() {
     arr.append(17);
     arr.append(21);
     print_array(arr);
+
+    print_format(123, 0);
+    print_format(321, 1);
+    print_format('hello', 2);
 }

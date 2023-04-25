@@ -597,7 +597,7 @@ impl NoGenericArgsGenericLibfunc for CallLibFunc {
 #[derive(Default)]
 pub struct PrintLibFunc {}
 impl NoGenericArgsGenericLibfunc for PrintLibFunc {
-    const STR_ID: &'static str = "print_format";
+    const STR_ID: &'static str = "_print_format";
 
     fn specialize_signature(
         &self,
