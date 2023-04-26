@@ -746,25 +746,11 @@ impl Display for Hint {
                 "
                     start = {}
                     end = {}
+                    data = []
                     while start != end:
-                        value = memory[start]
-                        str_value = None
-                        try:
-                            non_zero_byte_encountered = False
-                            str_value_stripped = ''
-                            for bt in value.to_bytes(length=31, byteorder='big'):
-                                if not non_zero_byte_encountered and bt == 0:
-                                    continue
-                                if bt != 0:
-                                    non_zero_byte_encountered = True
-                                str_value_stripped += chr(bt)
-                            str_value = str_value_stripped
-                        except BaseException as e:
-                            print('string conversion failed: ' + str(e))
-                        original_value_msg = 'original value: [' + str(value) + ']'
-                        converted_value_msg = 'converted to a string: [' + str_value + ']'
-                        print(original_value_msg, converted_value_msg)
+                        data.append(memory[start])
                         start = start + 1
+                    protostar_print(data)
                 ",
                 ResOperandFormatter(start),
                 ResOperandFormatter(end),
