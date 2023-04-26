@@ -9,11 +9,11 @@ use self::invoke::build_invoke;
 use self::mock_call::build_mock_call;
 use self::prepare::build_prepare;
 use self::prepare_cairo0::build_prepare_cairo0;
+use self::print::build_protostar_print;
 use self::roll::build_roll;
 use self::start_prank::build_start_prank;
 use self::stop_prank::build_stop_prank;
 use self::warp::build_warp;
-use self::print::build_protostar_print;
 use super::{CompiledInvocation, CompiledInvocationBuilder};
 use crate::invocations::InvocationError;
 
@@ -26,11 +26,11 @@ mod invoke;
 mod mock_call;
 mod prepare;
 mod prepare_cairo0;
+mod print;
 mod roll;
 mod start_prank;
 mod stop_prank;
 mod warp;
-mod print;
 
 /// Builds instructions for Sierra array operations.
 pub fn build(

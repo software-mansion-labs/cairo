@@ -248,5 +248,5 @@ fn test_print() {
     arr.append(21);
     arr.print();
 
-    (1==5).print();
+    (1 == 5).print();
 }

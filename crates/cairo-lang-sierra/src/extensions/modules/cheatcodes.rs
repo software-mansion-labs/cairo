@@ -593,7 +593,6 @@ impl NoGenericArgsGenericLibfunc for CallLibFunc {
     }
 }
 
-
 #[derive(Default)]
 pub struct PrintLibFunc {}
 impl NoGenericArgsGenericLibfunc for PrintLibFunc {
