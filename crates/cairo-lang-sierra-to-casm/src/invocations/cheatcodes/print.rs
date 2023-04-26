@@ -13,12 +13,12 @@ pub fn build_protostar_print(
     add_input_variables! {casm_builder,
         buffer(0) arr_start;
         buffer(0) arr_end;
-    };
+    }
     casm_build_extend! {casm_builder,
         hint Print {start: arr_start, end: arr_end} into {};
         // Since we can't have hints not carried on actual instructions.
         ap += 0;
-    };
+    }
     Ok(builder.build_from_casm_builder(
         casm_builder,
         [("Fallthrough", &[], None)],
