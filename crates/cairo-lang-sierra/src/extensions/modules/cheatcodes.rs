@@ -597,37 +597,20 @@ impl NoGenericArgsGenericLibfunc for CallLibFunc {
 #[derive(Default)]
 pub struct PrintLibFunc {}
 impl NoGenericArgsGenericLibfunc for PrintLibFunc {
-    const STR_ID: &'static str = "_print_format";
+    const STR_ID: &'static str = "print";
 
     fn specialize_signature(
         &self,
         context: &dyn SignatureSpecializationContext,
     ) -> Result<LibfuncSignature, SpecializationError> {
-        let felt_ty = context.get_concrete_type(Felt252Type::id(), &[])?;
-        let arr_ty = context.get_wrapped_concrete_type(ArrayType::id(), felt_ty.clone())?;
-        Ok(LibfuncSignature {
-            param_signatures: vec![
-                // data
-                ParamSignature::new(arr_ty.clone()),
-                // format
-                ParamSignature::new(felt_ty.clone()),
-            ],
-            branch_signatures: vec![
-                // Success branch
-                BranchSignature {
-                    vars: vec![],
-                    ap_change: SierraApChange::Known { new_vars_only: false },
-                },
-                BranchSignature {
-                    // Panic data
-                    vars: vec![OutputVarInfo {
-                        ty: arr_ty.clone(),
-                        ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
-                    }],
-                    ap_change: SierraApChange::Known { new_vars_only: false },
-                },
-            ],
-            fallthrough: Some(0),
-        })
+        // TODO(spapini): We should get a StringView, which is something like
+        // (Span<StringLimb>, len), or something like that.
+        let felt252_ty = context.get_concrete_type(Felt252Type::id(), &[])?;
+        let arr_type = context.get_wrapped_concrete_type(ArrayType::id(), felt252_ty)?;
+        Ok(LibfuncSignature::new_non_branch(
+            vec![arr_type],
+            vec![],
+            SierraApChange::Known { new_vars_only: true },
+        ))
     }
 }

@@ -234,11 +234,8 @@ pub enum Hint {
         panic_data_end: CellRef,
     },
     Print {
-        data_start: ResOperand,
-        data_end: ResOperand,
-        format: ResOperand,
-        panic_data_start: CellRef,
-        panic_data_end: CellRef,
+        start: ResOperand,
+        end: ResOperand,
     },
     /// Prints the values from start to end.
     /// Both must be pointers.
@@ -744,30 +741,34 @@ impl Display for Hint {
                     "
                 )
             }
-            Hint::Print {
-                data_start,
-                data_end,
-                format,
-                panic_data_start,
-                panic_data_end,
-            } => {
-                writedoc!(
-                    f,
-                    "
-                    data = []
-                    it = memory[{data_start}[0]]
-                    end = memory[{data_end}[0]]
-                    while it != end:
-                        data.append(memory[it])
-                        it = it + 1
-                    print('here 1:', memory[{format}])
-                    print('here 2:', data)
-
-                    memory{panic_data_start} = 0
-                    memory{panic_data_end} = 0
-                    "
-                )
-            }
+            Hint::Print { start, end } => writedoc!(
+                f,
+                "
+                    start = {}
+                    end = {}
+                    while start != end:
+                        value = memory[start]
+                        str_value = None
+                        try:
+                            non_zero_byte_encountered = False
+                            str_value_stripped = ''
+                            for bt in value.to_bytes(length=31, byteorder='big'):
+                                if not non_zero_byte_encountered and bt == 0:
+                                    continue
+                                if bt != 0:
+                                    non_zero_byte_encountered = True
+                                str_value_stripped += chr(bt)
+                            str_value = str_value_stripped
+                        except BaseException as e:
+                            print('string conversion failed: ' + str(e))
+                        original_value_msg = 'original value: [' + str(value) + ']'
+                        converted_value_msg = 'converted to a string: [' + str_value + ']'
+                        print(original_value_msg, converted_value_msg)
+                        start = start + 1
+                ",
+                ResOperandFormatter(start),
+                ResOperandFormatter(end),
+            ),
             Hint::GetCurrentAccessIndex { range_check_ptr } => writedoc!(
                 f,
                 "

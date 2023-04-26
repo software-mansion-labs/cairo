@@ -235,18 +235,18 @@ fn test_call() {
     }
 }
 
+use protostar_print::PrintTrait;
+
 #[test]
 fn test_print() {
-    print(123);
-    print('aaa');
+    123.print();
+    'aaa'.print();
 
     let mut arr = ArrayTrait::new();
     arr.append(12);
     arr.append(17);
     arr.append(21);
-    print_array(arr);
+    arr.print();
 
-    print_format(123, 0);
-    print_format(321, 1);
-    print_format('hello', 2);
+    (1==5).print();
 }

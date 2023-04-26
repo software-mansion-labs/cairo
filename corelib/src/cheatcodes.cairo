@@ -211,25 +211,3 @@ fn call(
     }
 }
 
-fn print(data: felt252) -> Result::<(), (Array::<felt252>)> {
-    let mut arr = ArrayTrait::new();
-    arr.append(data);
-    _print_format(arr, 0)
-}
-
-fn print_array(data: Array<felt252>) -> Result::<(), (Array::<felt252>)> nopanic {
-    _print_format(data, 0)
-}
-
-// todo try to convert format to enum
-// 0 - decimal
-// 1 - hex
-// 2 - string
-fn print_format(data: felt252, format: felt252) -> Result::<(), (Array::<felt252>)> {
-    assert(format == 0 | format == 1 | format == 2, 'format check');
-    let mut arr = ArrayTrait::new();
-    arr.append(data);
-    _print_format(arr, format)
-}
-
-extern fn _print_format(data: Array<felt252>, format: felt252) -> Result::<(), (Array::<felt252>)> nopanic;
