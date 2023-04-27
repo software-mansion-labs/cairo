@@ -138,7 +138,9 @@ fn test_prepare_impl() {
     arr.append(0xBAD);
     arr.append(0xC0DE);
     match prepare_impl(0xBEEF, arr) {
-        Result::Ok((constructor_calldata, contract_address, class_hash)) => {
+        Result::Ok((
+            constructor_calldata, contract_address, class_hash
+        )) => {
             drop(constructor_calldata);
             drop(contract_address);
             drop(class_hash);
