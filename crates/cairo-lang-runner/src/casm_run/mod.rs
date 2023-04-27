@@ -419,9 +419,7 @@ impl HintProcessor for CairoHintProcessor {
             &Hint::Invoke { .. } => todo!(),
             &Hint::MockCall { .. } => todo!(),
             &Hint::Deploy { .. } => todo!(),
-            &Hint::DeployCairo0 { .. } => todo!(),
             &Hint::Prepare { .. } => todo!(),
-            &Hint::PrepareCairo0 { .. } => todo!(),
             &Hint::Call { .. } => todo!(),
             &Hint::Print { .. } => todo!(),
             Hint::SetBlockNumber { value } => {
