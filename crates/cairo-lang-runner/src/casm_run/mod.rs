@@ -310,6 +310,7 @@ impl HintProcessor for CairoHintProcessor<'_> {
                 return execute_core_hint_base(vm, exec_scopes, core_hint_base);
             }
             Hint::Starknet(hint) => hint,
+            Hint::Protostar(hint) => hint,
         };
         match hint {
             StarknetHint::SystemCall { system } => {
@@ -746,6 +747,18 @@ impl HintProcessor for CairoHintProcessor<'_> {
                 let end = get_ptr(vm, cell, &offset)?;
                 self.starknet_state.exec_info.tx_info.signature = vm_get_range(vm, start, end)?;
             }
+            &Hint::Roll { .. } => todo!(),
+            &Hint::Warp { .. } => todo!(),
+            &Hint::Declare { .. } => todo!(),
+            &Hint::DeclareCairo0 { .. } => todo!(),
+            &Hint::StartPrank { .. } => todo!(),
+            &Hint::StopPrank { .. } => todo!(),
+            &Hint::Invoke { .. } => todo!(),
+            &Hint::MockCall { .. } => todo!(),
+            &Hint::Deploy { .. } => todo!(),
+            &Hint::Prepare { .. } => todo!(),
+            &Hint::Call { .. } => todo!(),
+            &Hint::Print { .. } => todo!(),
         };
         Ok(())
     }
@@ -1233,7 +1246,7 @@ pub fn execute_core_hint(
                 };
             insert_value_to_cellref!(vm, dst, memory_exec_scope.next_address)?;
             memory_exec_scope.next_address.offset += object_size;
-        }
+        },
     };
     Ok(())
 }
