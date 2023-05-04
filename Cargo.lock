@@ -572,7 +572,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-lang-protostar"
-version = "1.0.0-alpha.7"
+version = "1.0.0-rc0"
 dependencies = [
  "anyhow",
  "cairo-felt",
