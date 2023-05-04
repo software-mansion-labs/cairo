@@ -14,6 +14,7 @@ mod test;
 pub enum Hint {
     Core(CoreHintBase),
     Starknet(StarknetHint),
+    Protostar(ProtostarHint),
 }
 
 impl From<CoreHint> for Hint {
@@ -27,11 +28,18 @@ impl From<StarknetHint> for Hint {
     }
 }
 
+impl From<ProtostarHint> for Hint {
+    fn from(value: ProtostarHint) -> Self {
+        Hint::Protostar(value)
+    }
+}
+
 impl Display for Hint {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Hint::Core(hint) => hint.fmt(f),
             Hint::Starknet(hint) => hint.fmt(f),
+            Hint::Protostar(hint) => hint.fmt(f),
         }
     }
 }
@@ -46,6 +54,88 @@ pub enum StarknetHint {
     SetContractAddress { value: ResOperand },
     SetSequencerAddress { value: ResOperand },
     SetSignature { start: ResOperand, end: ResOperand },
+}
+
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+pub enum ProtostarHint {
+    Roll {
+        address: ResOperand,
+        caller_address: ResOperand,
+        err_code: CellRef,
+    },
+    Warp {
+        blk_timestamp: ResOperand,
+        target_contract_address: ResOperand,
+        err_code: CellRef,
+    },
+    Declare {
+        contract: ResOperand,
+        result: CellRef,
+        err_code: CellRef,
+    },
+    DeclareCairo0 {
+        contract: ResOperand,
+        result: CellRef,
+        err_code: CellRef,
+    },
+    StartPrank {
+        caller_address: ResOperand,
+        target_contract_address: ResOperand,
+        err_code: CellRef,
+    },
+    StopPrank {
+        target_contract_address: ResOperand,
+        err_code: CellRef,
+    },
+    Invoke {
+        contract_address: ResOperand,
+        function_name: ResOperand,
+        calldata_start: ResOperand,
+        calldata_end: ResOperand,
+        panic_data_start: CellRef,
+        panic_data_end: CellRef,
+    },
+    MockCall {
+        contract_address: ResOperand,
+        function_name: ResOperand,
+        response_start: ResOperand,
+        response_end: ResOperand,
+        err_code: CellRef,
+    },
+    Deploy {
+        prepared_contract_address: ResOperand,
+        prepared_class_hash: ResOperand,
+        prepared_constructor_calldata_start: ResOperand,
+        prepared_constructor_calldata_end: ResOperand,
+        deployed_contract_address: CellRef,
+        panic_data_start: CellRef,
+        panic_data_end: CellRef,
+    },
+    Prepare {
+        class_hash: ResOperand,
+        calldata_start: ResOperand,
+        calldata_end: ResOperand,
+        contract_address: CellRef,
+        return_class_hash: CellRef,
+        constructor_calldata_start: CellRef,
+        constructor_calldata_end: CellRef,
+        err_code: CellRef,
+    },
+    Call {
+        contract_address: ResOperand,
+        function_name: ResOperand,
+        calldata_start: ResOperand,
+        calldata_end: ResOperand,
+        return_data_start: CellRef,
+        return_data_end: CellRef,
+        panic_data_start: CellRef,
+        panic_data_end: CellRef,
+    },
+    Print {
+        start: ResOperand,
+        end: ResOperand,
+    },
+
 }
 
 // Represents a cairo core hint.
@@ -230,83 +320,6 @@ pub enum CoreHint {
     FieldSqrt {
         val: ResOperand,
         sqrt: CellRef,
-    },
-    Roll {
-        address: ResOperand,
-        caller_address: ResOperand,
-        err_code: CellRef,
-    },
-    Warp {
-        blk_timestamp: ResOperand,
-        target_contract_address: ResOperand,
-        err_code: CellRef,
-    },
-    Declare {
-        contract: ResOperand,
-        result: CellRef,
-        err_code: CellRef,
-    },
-    DeclareCairo0 {
-        contract: ResOperand,
-        result: CellRef,
-        err_code: CellRef,
-    },
-    StartPrank {
-        caller_address: ResOperand,
-        target_contract_address: ResOperand,
-        err_code: CellRef,
-    },
-    StopPrank {
-        target_contract_address: ResOperand,
-        err_code: CellRef,
-    },
-    Invoke {
-        contract_address: ResOperand,
-        function_name: ResOperand,
-        calldata_start: ResOperand,
-        calldata_end: ResOperand,
-        panic_data_start: CellRef,
-        panic_data_end: CellRef,
-    },
-    MockCall {
-        contract_address: ResOperand,
-        function_name: ResOperand,
-        response_start: ResOperand,
-        response_end: ResOperand,
-        err_code: CellRef,
-    },
-    Deploy {
-        prepared_contract_address: ResOperand,
-        prepared_class_hash: ResOperand,
-        prepared_constructor_calldata_start: ResOperand,
-        prepared_constructor_calldata_end: ResOperand,
-        deployed_contract_address: CellRef,
-        panic_data_start: CellRef,
-        panic_data_end: CellRef,
-    },
-    Prepare {
-        class_hash: ResOperand,
-        calldata_start: ResOperand,
-        calldata_end: ResOperand,
-        contract_address: CellRef,
-        return_class_hash: CellRef,
-        constructor_calldata_start: CellRef,
-        constructor_calldata_end: CellRef,
-        err_code: CellRef,
-    },
-    Call {
-        contract_address: ResOperand,
-        function_name: ResOperand,
-        calldata_start: ResOperand,
-        calldata_end: ResOperand,
-        return_data_start: CellRef,
-        return_data_end: CellRef,
-        panic_data_start: CellRef,
-        panic_data_end: CellRef,
-    },
-    Print {
-        start: ResOperand,
-        end: ResOperand,
     },
     /// Prints the values from start to end.
     /// Both must be pointers.
@@ -585,255 +598,6 @@ impl Display for CoreHint {
                     ResOperandFormatter(val)
                 )
             }
-            CoreHint::Roll { address, caller_address, err_code } => {
-                writedoc!(
-                    f,
-                    "
-                    memory{err_code} = roll(address=memory[{address}[0]], \
-                     caller_address=memory[{caller_address}[0]]).err_code; 
-                    "
-                )
-            }
-            CoreHint::Warp { blk_timestamp, target_contract_address, err_code } => {
-                writedoc!(
-                    f,
-                    "
-                    memory{err_code} = warp(blk_timestamp=memory[{blk_timestamp}[0]], \
-                     target_contract_address=memory[{target_contract_address}[0]]).err_code; 
-                    "
-                )
-            }
-            CoreHint::StartPrank { caller_address, target_contract_address, err_code } => {
-                writedoc!(
-                    f,
-                    "
-                    memory{err_code} = start_prank(caller_address=memory[{caller_address}[0]], \
-                     target_contract_address=memory[{target_contract_address}[0]]).err_code;
-                    "
-                )
-            }
-            CoreHint::StopPrank { target_contract_address, err_code } => {
-                writedoc!(
-                    f,
-                    "
-                    memory{err_code} = \
-                     stop_prank(target_contract_address=memory[{target_contract_address}[0]]).\
-                     err_code
-                    "
-                )
-            }
-            CoreHint::Declare { contract, result, err_code } => {
-                writedoc!(
-                    f,
-                    "
-                    r = declare(contract=memory[{contract}[0]]);
-                    memory{err_code} = r.err_code
-                    memory{result} = 0 if r.err_code != 0 else r.ok.class_hash
-                    "
-                )
-            }
-            CoreHint::DeclareCairo0 { contract, result, err_code } => {
-                writedoc!(
-                    f,
-                    "
-                    r = declare_cairo0(contract=memory[{contract}[0]]);
-                    memory{err_code} = r.err_code
-                    memory{result} = 0 if r.err_code != 0 else r.ok.class_hash
-                    "
-                )
-            }
-            CoreHint::Invoke {
-                contract_address,
-                function_name,
-                calldata_start,
-                calldata_end,
-                panic_data_start,
-                panic_data_end,
-            } => {
-                writedoc!(
-                    f,
-                    "
-                    calldata = []
-                    it = memory[{calldata_start}[0]]
-                    end = memory[{calldata_end}[0]]
-                    while it != end:
-                        calldata.append(memory[it])
-                        it = it + 1
-                    r = invoke(
-                        contract_address=memory[{contract_address}[0]],
-                        function_name=memory[{function_name}[0]],
-                        calldata=calldata,
-                    )
-                    panic_data_start = panic_data_end = 0
-                    panicked = hasattr(r, 'panic_data') and bool(r.panic_data)
-                    if panicked:
-                        panic_data_start = segments.add()
-                        panic_data_end = segments.load_data(panic_data_start, r.panic_data + [0]) \
-                     - 1
-                    memory{panic_data_start} = panic_data_start
-                    memory{panic_data_end} = panic_data_end
-                    "
-                )
-            }
-            CoreHint::MockCall {
-                contract_address,
-                function_name,
-                response_start,
-                response_end,
-                err_code,
-            } => {
-                writedoc!(
-                    f,
-                    "
-                    response = []
-                    it = memory[{response_start}[0]]
-                    end = memory[{response_end}[0]]
-                    while it != end:
-                        response.append(memory[it])
-                        it = it + 1
-                    r = mock_call(
-                        contract_address=memory[{contract_address}[0]],
-                        function_name=memory[{function_name}[0]],
-                        response=response,
-                    );
-                    memory{err_code} = r.err_code
-                    "
-                )
-            }
-            CoreHint::Deploy {
-                prepared_contract_address,
-                prepared_class_hash,
-                prepared_constructor_calldata_start,
-                prepared_constructor_calldata_end,
-                deployed_contract_address,
-                panic_data_start,
-                panic_data_end,
-            } => {
-                writedoc!(
-                    f,
-                    "
-                    calldata = []
-                    it = memory[{prepared_constructor_calldata_start}[0]]
-                    end = memory[{prepared_constructor_calldata_end}[0]]
-                    while it != end:
-                        calldata.append(memory[it])
-                        it = it + 1
-                    r = deploy_impl(
-                        contract_address=memory[{prepared_contract_address}[0]],
-                        class_hash=memory[{prepared_class_hash}[0]],
-                        constructor_calldata=calldata,
-                    );
-
-                    panic_data_start = panic_data_end = 0
-                    panicked = hasattr(r, 'panic_data') and bool(r.panic_data)
-                    if panicked:
-                        panic_data_start = segments.add()
-                        panic_data_end = segments.load_data(panic_data_start, r.panic_data + [0]) \
-                     - 1
-                    memory{panic_data_start} = panic_data_start
-                    memory{panic_data_end} = panic_data_end
-                    memory{deployed_contract_address} = 0 if panicked else r.ok.contract_address
-                    "
-                )
-            }
-            CoreHint::Prepare {
-                class_hash,
-                calldata_start,
-                calldata_end,
-                contract_address,
-                return_class_hash,
-                constructor_calldata_start,
-                constructor_calldata_end,
-                err_code,
-            } => {
-                writedoc!(
-                    f,
-                    "
-                    calldata = []
-                    it = memory[{calldata_start}[0]]
-                    end = memory[{calldata_end}[0]]
-                    while it != end:
-                        calldata.append(memory[it])
-                        it = it + 1
-                    r = prepare_impl(
-                        class_hash=memory[{class_hash}[0]],
-                        calldata=calldata
-                    )
-                    memory{err_code} = r.err_code
-                    memory{contract_address} = 0 if r.err_code != 0 else r.ok.contract_address
-                    memory{return_class_hash} = 0 if r.err_code != 0 else r.ok.class_hash
-
-                    constructor_calldata_start = constructor_calldata_end = 0
-                    if r.err_code == 0 and r.ok.constructor_calldata:
-                        constructor_calldata_start = segments.add()
-                        constructor_calldata_end = segments.load_data(
-                            constructor_calldata_start, r.ok.constructor_calldata + [0]
-                        ) - 1
-
-                    memory{constructor_calldata_start} = constructor_calldata_start
-                    memory{constructor_calldata_end} = constructor_calldata_end
-                    "
-                )
-            }
-            CoreHint::Call {
-                contract_address,
-                function_name,
-                calldata_start,
-                calldata_end,
-                return_data_start,
-                return_data_end,
-                panic_data_start,
-                panic_data_end,
-            } => {
-                writedoc!(
-                    f,
-                    "
-                    calldata = []
-                    it = memory[{calldata_start}[0]]
-                    end = memory[{calldata_end}[0]]
-                    while it != end:
-                        calldata.append(memory[it])
-                        it = it + 1
-                    r = call(
-                        contract_address=memory[{contract_address}[0]],
-                        function_name=memory[{function_name}[0]],
-                        calldata=calldata
-                    )
-
-                    panic_data_start = panic_data_end = 0
-                    panicked = hasattr(r, 'panic_data') and bool(r.panic_data)
-                    if panicked:
-                        panic_data_start = segments.add()
-                        panic_data_end = segments.load_data(panic_data_start, r.panic_data + [0]) \
-                     - 1
-                    memory{panic_data_start} = panic_data_start
-                    memory{panic_data_end} = panic_data_end
-
-                    return_data_start = return_data_end = 0
-                    if not panicked and r.ok.return_data:
-                        return_data_start = segments.add()
-                        return_data_end = segments.load_data(return_data_start, r.ok.return_data + \
-                     [0]) - 1
-
-                    memory{return_data_start} = return_data_start
-                    memory{return_data_end} = return_data_end
-                    "
-                )
-            }
-            CoreHint::Print { start, end } => writedoc!(
-                f,
-                "
-                    start = {}
-                    end = {}
-                    data = []
-                    while start != end:
-                        data.append(memory[start])
-                        start = start + 1
-                    protostar_print(data)
-                ",
-                ResOperandFormatter(start),
-                ResOperandFormatter(end),
-            ),
             CoreHint::GetCurrentAccessIndex { range_check_ptr } => writedoc!(
                 f,
                 "
@@ -1013,6 +777,263 @@ impl Display for StarknetHint {
                     ResOperandFormatter(end)
                 )
             }
+        }
+    }
+}
+
+impl Display for ProtostarHint {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ProtostarHint::Roll { address, caller_address, err_code } => {
+                writedoc!(
+                    f,
+                    "
+                    memory{err_code} = roll(address=memory[{address}[0]], \
+                     caller_address=memory[{caller_address}[0]]).err_code; 
+                    "
+                )
+            }
+            ProtostarHint::Warp { blk_timestamp, target_contract_address, err_code } => {
+                writedoc!(
+                    f,
+                    "
+                    memory{err_code} = warp(blk_timestamp=memory[{blk_timestamp}[0]], \
+                     target_contract_address=memory[{target_contract_address}[0]]).err_code; 
+                    "
+                )
+            }
+            ProtostarHint::StartPrank { caller_address, target_contract_address, err_code } => {
+                writedoc!(
+                    f,
+                    "
+                    memory{err_code} = start_prank(caller_address=memory[{caller_address}[0]], \
+                     target_contract_address=memory[{target_contract_address}[0]]).err_code;
+                    "
+                )
+            }
+            ProtostarHint::StopPrank { target_contract_address, err_code } => {
+                writedoc!(
+                    f,
+                    "
+                    memory{err_code} = \
+                     stop_prank(target_contract_address=memory[{target_contract_address}[0]]).\
+                     err_code
+                    "
+                )
+            }
+            ProtostarHint::Declare { contract, result, err_code } => {
+                writedoc!(
+                    f,
+                    "
+                    r = declare(contract=memory[{contract}[0]]);
+                    memory{err_code} = r.err_code
+                    memory{result} = 0 if r.err_code != 0 else r.ok.class_hash
+                    "
+                )
+            }
+            ProtostarHint::DeclareCairo0 { contract, result, err_code } => {
+                writedoc!(
+                    f,
+                    "
+                    r = declare_cairo0(contract=memory[{contract}[0]]);
+                    memory{err_code} = r.err_code
+                    memory{result} = 0 if r.err_code != 0 else r.ok.class_hash
+                    "
+                )
+            }
+            ProtostarHint::Invoke {
+                contract_address,
+                function_name,
+                calldata_start,
+                calldata_end,
+                panic_data_start,
+                panic_data_end,
+            } => {
+                writedoc!(
+                    f,
+                    "
+                    calldata = []
+                    it = memory[{calldata_start}[0]]
+                    end = memory[{calldata_end}[0]]
+                    while it != end:
+                        calldata.append(memory[it])
+                        it = it + 1
+                    r = invoke(
+                        contract_address=memory[{contract_address}[0]],
+                        function_name=memory[{function_name}[0]],
+                        calldata=calldata,
+                    )
+                    panic_data_start = panic_data_end = 0
+                    panicked = hasattr(r, 'panic_data') and bool(r.panic_data)
+                    if panicked:
+                        panic_data_start = segments.add()
+                        panic_data_end = segments.load_data(panic_data_start, r.panic_data + [0]) \
+                     - 1
+                    memory{panic_data_start} = panic_data_start
+                    memory{panic_data_end} = panic_data_end
+                    "
+                )
+            }
+            ProtostarHint::MockCall {
+                contract_address,
+                function_name,
+                response_start,
+                response_end,
+                err_code,
+            } => {
+                writedoc!(
+                    f,
+                    "
+                    response = []
+                    it = memory[{response_start}[0]]
+                    end = memory[{response_end}[0]]
+                    while it != end:
+                        response.append(memory[it])
+                        it = it + 1
+                    r = mock_call(
+                        contract_address=memory[{contract_address}[0]],
+                        function_name=memory[{function_name}[0]],
+                        response=response,
+                    );
+                    memory{err_code} = r.err_code
+                    "
+                )
+            }
+            ProtostarHint::Deploy {
+                prepared_contract_address,
+                prepared_class_hash,
+                prepared_constructor_calldata_start,
+                prepared_constructor_calldata_end,
+                deployed_contract_address,
+                panic_data_start,
+                panic_data_end,
+            } => {
+                writedoc!(
+                    f,
+                    "
+                    calldata = []
+                    it = memory[{prepared_constructor_calldata_start}[0]]
+                    end = memory[{prepared_constructor_calldata_end}[0]]
+                    while it != end:
+                        calldata.append(memory[it])
+                        it = it + 1
+                    r = deploy_impl(
+                        contract_address=memory[{prepared_contract_address}[0]],
+                        class_hash=memory[{prepared_class_hash}[0]],
+                        constructor_calldata=calldata,
+                    );
+
+                    panic_data_start = panic_data_end = 0
+                    panicked = hasattr(r, 'panic_data') and bool(r.panic_data)
+                    if panicked:
+                        panic_data_start = segments.add()
+                        panic_data_end = segments.load_data(panic_data_start, r.panic_data + [0]) \
+                     - 1
+                    memory{panic_data_start} = panic_data_start
+                    memory{panic_data_end} = panic_data_end
+                    memory{deployed_contract_address} = 0 if panicked else r.ok.contract_address
+                    "
+                )
+            }
+            ProtostarHint::Prepare {
+                class_hash,
+                calldata_start,
+                calldata_end,
+                contract_address,
+                return_class_hash,
+                constructor_calldata_start,
+                constructor_calldata_end,
+                err_code,
+            } => {
+                writedoc!(
+                    f,
+                    "
+                    calldata = []
+                    it = memory[{calldata_start}[0]]
+                    end = memory[{calldata_end}[0]]
+                    while it != end:
+                        calldata.append(memory[it])
+                        it = it + 1
+                    r = prepare_impl(
+                        class_hash=memory[{class_hash}[0]],
+                        calldata=calldata
+                    )
+                    memory{err_code} = r.err_code
+                    memory{contract_address} = 0 if r.err_code != 0 else r.ok.contract_address
+                    memory{return_class_hash} = 0 if r.err_code != 0 else r.ok.class_hash
+
+                    constructor_calldata_start = constructor_calldata_end = 0
+                    if r.err_code == 0 and r.ok.constructor_calldata:
+                        constructor_calldata_start = segments.add()
+                        constructor_calldata_end = segments.load_data(
+                            constructor_calldata_start, r.ok.constructor_calldata + [0]
+                        ) - 1
+
+                    memory{constructor_calldata_start} = constructor_calldata_start
+                    memory{constructor_calldata_end} = constructor_calldata_end
+                    "
+                )
+            }
+            ProtostarHint::Call {
+                contract_address,
+                function_name,
+                calldata_start,
+                calldata_end,
+                return_data_start,
+                return_data_end,
+                panic_data_start,
+                panic_data_end,
+            } => {
+                writedoc!(
+                    f,
+                    "
+                    calldata = []
+                    it = memory[{calldata_start}[0]]
+                    end = memory[{calldata_end}[0]]
+                    while it != end:
+                        calldata.append(memory[it])
+                        it = it + 1
+                    r = call(
+                        contract_address=memory[{contract_address}[0]],
+                        function_name=memory[{function_name}[0]],
+                        calldata=calldata
+                    )
+
+                    panic_data_start = panic_data_end = 0
+                    panicked = hasattr(r, 'panic_data') and bool(r.panic_data)
+                    if panicked:
+                        panic_data_start = segments.add()
+                        panic_data_end = segments.load_data(panic_data_start, r.panic_data + [0]) \
+                     - 1
+                    memory{panic_data_start} = panic_data_start
+                    memory{panic_data_end} = panic_data_end
+
+                    return_data_start = return_data_end = 0
+                    if not panicked and r.ok.return_data:
+                        return_data_start = segments.add()
+                        return_data_end = segments.load_data(return_data_start, r.ok.return_data + \
+                     [0]) - 1
+
+                    memory{return_data_start} = return_data_start
+                    memory{return_data_end} = return_data_end
+                    "
+                )
+            }
+            ProtostarHint::Print { start, end } => writedoc!(
+                f,
+                "
+                    start = {}
+                    end = {}
+                    data = []
+                    while start != end:
+                        data.append(memory[start])
+                        start = start + 1
+                    protostar_print(data)
+                ",
+                ResOperandFormatter(start),
+                ResOperandFormatter(end),
+            ),
+
         }
     }
 }
