@@ -20,7 +20,7 @@ pub fn build_roll(
 
     casm_build_extend! {casm_builder,
         tempvar err_code;
-        hint Roll {address: address, caller_address: caller_address} into {err_code: err_code};
+        hint ProtostarHint::Roll {address: address, caller_address: caller_address} into {err_code: err_code};
         jump Failure if err_code != 0;
     };
 

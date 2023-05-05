@@ -6,7 +6,7 @@ use ark_ff::fields::{Fp256, MontBackend, MontConfig};
 use ark_ff::{Field, PrimeField};
 use ark_std::UniformRand;
 use cairo_felt::{felt_str as felt252_str, Felt252, PRIME_STR};
-use cairo_lang_casm::hints::{CoreHint, DeprecatedHint, Hint, StarknetHint};
+use cairo_lang_casm::hints::{CoreHint, DeprecatedHint, Hint, StarknetHint, ProtostarHint};
 use cairo_lang_casm::instructions::Instruction;
 use cairo_lang_casm::operand::{
     BinOpOperand, CellRef, DerefOrImmediate, Operation, Register, ResOperand,
@@ -309,8 +309,10 @@ impl HintProcessor for CairoHintProcessor<'_> {
             Hint::Core(core_hint_base) => {
                 return execute_core_hint_base(vm, exec_scopes, core_hint_base);
             }
+            Hint::Protostar(hint) => {
+                return execute_protostar_hint(vm, exec_scopes, hint);
+            },
             Hint::Starknet(hint) => hint,
-            Hint::Protostar(hint) => hint,
         };
         match hint {
             StarknetHint::SystemCall { system } => {
@@ -733,18 +735,7 @@ impl HintProcessor for CairoHintProcessor<'_> {
                 let end = get_ptr(vm, cell, &offset)?;
                 self.starknet_state.exec_info.tx_info.signature = vm_get_range(vm, start, end)?;
             }
-            &Hint::Roll { .. } => todo!(),
-            &Hint::Warp { .. } => todo!(),
-            &Hint::Declare { .. } => todo!(),
-            &Hint::DeclareCairo0 { .. } => todo!(),
-            &Hint::StartPrank { .. } => todo!(),
-            &Hint::StopPrank { .. } => todo!(),
-            &Hint::Invoke { .. } => todo!(),
-            &Hint::MockCall { .. } => todo!(),
-            &Hint::Deploy { .. } => todo!(),
-            &Hint::Prepare { .. } => todo!(),
-            &Hint::Call { .. } => todo!(),
-            &Hint::Print { .. } => todo!(),
+
         };
         Ok(())
     }
@@ -773,6 +764,27 @@ fn execute_core_hint_base(
         cairo_lang_casm::hints::CoreHintBase::Deprecated(deprecated_hint) => {
             execute_deprecated_hint(vm, exec_scopes, deprecated_hint)
         }
+    }
+}
+
+fn execute_protostar_hint(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    hint: &cairo_lang_casm::hints::ProtostarHint,
+) -> Result<(), HintError> {
+    match hint {
+        &ProtostarHint::Roll { .. } => todo!(),
+        &ProtostarHint::Warp { .. } => todo!(),
+        &ProtostarHint::Declare { .. } => todo!(),
+        &ProtostarHint::DeclareCairo0 { .. } => todo!(),
+        &ProtostarHint::StartPrank { .. } => todo!(),
+        &ProtostarHint::StopPrank { .. } => todo!(),
+        &ProtostarHint::Invoke { .. } => todo!(),
+        &ProtostarHint::MockCall { .. } => todo!(),
+        &ProtostarHint::Deploy { .. } => todo!(),
+        &ProtostarHint::Prepare { .. } => todo!(),
+        &ProtostarHint::Call { .. } => todo!(),
+        &ProtostarHint::Print { .. } => todo!(),
     }
 }
 
