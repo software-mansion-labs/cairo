@@ -768,8 +768,8 @@ fn execute_core_hint_base(
 }
 
 fn execute_protostar_hint(
-    vm: &mut VirtualMachine,
-    exec_scopes: &mut ExecutionScopes,
+    _vm: &mut VirtualMachine,
+    _exec_scopes: &mut ExecutionScopes,
     hint: &cairo_lang_casm::hints::ProtostarHint,
 ) -> Result<(), HintError> {
     match hint {
