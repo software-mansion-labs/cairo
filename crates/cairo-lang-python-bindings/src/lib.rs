@@ -51,6 +51,7 @@ fn starknet_cairo_to_sierra(
 ) -> Result<String, anyhow::Error> {
     let contract = compile_starknet(
         &PathBuf::from(input_path),
+        None,
         CompilerConfig { replace_ids: true, ..CompilerConfig::default() },
         maybe_cairo_paths,
     )?;
