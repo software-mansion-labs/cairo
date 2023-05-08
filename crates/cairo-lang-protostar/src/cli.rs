@@ -18,8 +18,8 @@ struct Args {
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-
-    let (sierra_code_opt, collected) = collect_tests(&args.file, None, None, None)?;
+    let builtins = vec![String::from("GasBuiltin"), String::from("Pedersen"), String::from("RangeCheck"), String::from("bitwise"), String::from("ec_op")];
+    let (sierra_code_opt, collected) = collect_tests(&args.file, None, None, Some(builtins.iter().collect()))?;
 
     let sierra_code = sierra_code_opt.ok_or(anyhow!("Expected sierra code"))?;
 
