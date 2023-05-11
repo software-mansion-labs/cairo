@@ -1,7 +1,7 @@
 //! Compiles and runs a Cairo program.
 use std::fs;
 
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use cairo_lang_protostar::build_protostar_casm_from_sierra;
 use cairo_lang_protostar::test_collector::collect_tests;
 use clap::Parser;
