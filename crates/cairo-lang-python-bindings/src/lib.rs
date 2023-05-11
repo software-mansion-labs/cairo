@@ -118,15 +118,15 @@ fn compile_starknet_contract_sierra_to_casm_from_path(
     Ok(Some(casm))
 }
 
-// returns tuple[sierra if no output_path, list[test_name, test_config]]
+// returns tuple[sierra, list[test_name, test_config]]
 #[pyfunction]
 fn collect_tests(
     input_path: String,
     output_path: Option<String>,
     maybe_cairo_paths: Option<Vec<String>>,
     maybe_builtins: Option<Vec<String>>,
-) -> PyResult<(Option<String>, Vec<CollectedTest>)> {
-    let (sierra_code, collected) = internal_collect_tests(
+) -> PyResult<(String, Vec<CollectedTest>)> {
+    let (sierra_program, collected) = internal_collect_tests(
         &input_path,
         output_path.as_ref(),
         maybe_cairo_paths.as_ref().map(|a| a.iter().map(|b| b).collect::<Vec<&String>>()),
@@ -140,7 +140,7 @@ fn collect_tests(
     })?;
     let external_collected = collected.iter().map(|c| (c.name.clone(), c.available_gas)).collect();
 
-    Ok((sierra_code, external_collected))
+    Ok((sierra_program.to_string(), external_collected))
 }
 
 #[pyfunction]

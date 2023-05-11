@@ -216,7 +216,7 @@ pub fn collect_tests(
     output_path: Option<&String>,
     maybe_cairo_paths: Option<Vec<&String>>,
     maybe_builtins: Option<Vec<&String>>,
-) -> Result<(Option<String>, Vec<TestConfigInternal>)> {
+) -> Result<(Program, Vec<TestConfigInternal>)> {
     // code taken from crates/cairo-lang-test-runner/src/lib.rs
     let db = &mut {
         let mut b = RootDatabase::builder();
@@ -291,13 +291,10 @@ pub fn collect_tests(
     validate_tests(sierra_program.clone(), &collected_tests, builtins)
         .context("Test validation failed")?;
 
-    let mut result_contents = None;
     if let Some(path) = output_path {
         fs::write(path, &sierra_program.to_string()).context("Failed to write output")?;
-    } else {
-        result_contents = Some(sierra_program.to_string());
     }
-    Ok((result_contents, collected_tests))
+    Ok((sierra_program, collected_tests))
 }
 
 fn validate_tests(
