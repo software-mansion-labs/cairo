@@ -2,9 +2,7 @@ use cairo_lang_sierra::extensions::cheatcodes::CheatcodesConcreteLibFunc;
 
 use crate::objects::ConstCost;
 
-pub fn cheatcodes_libfunc_cost_base(
-    libfunc: &CheatcodesConcreteLibFunc,
-) -> Vec<ConstCost> {
+pub fn cheatcodes_libfunc_cost_base(libfunc: &CheatcodesConcreteLibFunc) -> Vec<ConstCost> {
     let steps = |value| ConstCost { steps: value, ..Default::default() };
     match libfunc {
         CheatcodesConcreteLibFunc::Declare(_) => vec![steps(2), steps(2)],

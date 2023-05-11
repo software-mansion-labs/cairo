@@ -135,7 +135,6 @@ pub enum ProtostarHint {
         start: ResOperand,
         end: ResOperand,
     },
-
 }
 
 // Represents a cairo core hint.
@@ -1033,7 +1032,6 @@ impl Display for ProtostarHint {
                 ResOperandFormatter(start),
                 ResOperandFormatter(end),
             ),
-
         }
     }
 }
