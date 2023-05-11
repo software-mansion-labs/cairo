@@ -11,12 +11,12 @@ use cairo_lang_debug::DebugWithDb;
 use cairo_lang_defs::ids::{FreeFunctionId, FunctionWithBodyId, ModuleItemId};
 use cairo_lang_defs::plugin::PluginDiagnostic;
 use cairo_lang_diagnostics::ToOption;
-use cairo_lang_filesystem::cfg::{CfgSet, Cfg};
+use cairo_lang_filesystem::cfg::{Cfg, CfgSet};
 use cairo_lang_filesystem::ids::CrateId;
+use cairo_lang_lowering::ids::ConcreteFunctionWithBodyId;
 use cairo_lang_semantic::db::SemanticGroup;
 use cairo_lang_semantic::items::functions::GenericFunctionId;
 use cairo_lang_semantic::{ConcreteFunction, FunctionLongId};
-use cairo_lang_lowering::ids::ConcreteFunctionWithBodyId;
 use cairo_lang_sierra::extensions::enm::EnumType;
 use cairo_lang_sierra::extensions::NamedType;
 use cairo_lang_sierra::program::{GenericArg, Program};
@@ -24,10 +24,10 @@ use cairo_lang_sierra_generator::db::SierraGenGroup;
 use cairo_lang_sierra_generator::replace_ids::replace_sierra_ids_in_program;
 use cairo_lang_starknet::plugin::StarkNetPlugin;
 use cairo_lang_syntax::attribute::structured::{Attribute, AttributeArg, AttributeArgVariant};
-use cairo_lang_syntax::node::db::SyntaxGroup;
 use cairo_lang_syntax::node::ast;
-use cairo_lang_utils::OptionHelper;
+use cairo_lang_syntax::node::db::SyntaxGroup;
 use cairo_lang_test_runner::plugin::TestPlugin;
+use cairo_lang_utils::OptionHelper;
 use itertools::Itertools;
 use num_traits::ToPrimitive;
 
@@ -245,11 +245,10 @@ pub fn collect_tests(
     }
     let all_tests = find_all_tests(db, main_crate_ids);
 
-    let z : Vec<ConcreteFunctionWithBodyId> = all_tests
+    let z: Vec<ConcreteFunctionWithBodyId> = all_tests
         .iter()
-        .flat_map(|(func_id, _cfg)| {
-            ConcreteFunctionWithBodyId::from_no_generics_free(db, *func_id)
-        }).collect();
+        .flat_map(|(func_id, _cfg)| ConcreteFunctionWithBodyId::from_no_generics_free(db, *func_id))
+        .collect();
 
     let sierra_program = db
         .get_sierra_program_for_functions(z)

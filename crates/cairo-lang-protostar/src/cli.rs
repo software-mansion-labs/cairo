@@ -18,8 +18,15 @@ struct Args {
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-    let builtins = vec![String::from("GasBuiltin"), String::from("Pedersen"), String::from("RangeCheck"), String::from("bitwise"), String::from("ec_op")];
-    let (sierra_program, collected) = collect_tests(&args.file, None, None, Some(builtins.iter().collect()))?;
+    let builtins = vec![
+        String::from("GasBuiltin"),
+        String::from("Pedersen"),
+        String::from("RangeCheck"),
+        String::from("bitwise"),
+        String::from("ec_op"),
+    ];
+    let (sierra_program, collected) =
+        collect_tests(&args.file, None, None, Some(builtins.iter().collect()))?;
 
     let sierra_code = sierra_program.to_string();
 
