@@ -218,7 +218,7 @@ impl NoGenericArgsGenericLibfunc for StartWarpLibFunc {
                         // Error reason
                         OutputVarInfo {
                             ty: felt_ty.clone(),
-                            ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
+                            ref_info: OutputVarReferenceInfo::NewTempVar { idx: 0 },
                         },
                     ],
                     ap_change: SierraApChange::Known { new_vars_only: false },
@@ -256,7 +256,7 @@ impl NoGenericArgsGenericLibfunc for StopWarpLibFunc {
                         // Error reason
                         OutputVarInfo {
                             ty: felt_ty.clone(),
-                            ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
+                            ref_info: OutputVarReferenceInfo::NewTempVar { idx: 0 },
                         },
                     ],
                     ap_change: SierraApChange::Known { new_vars_only: false },

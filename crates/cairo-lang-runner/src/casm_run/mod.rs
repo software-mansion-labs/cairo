@@ -772,8 +772,10 @@ fn execute_protostar_hint(
     hint: &cairo_lang_casm::hints::ProtostarHint,
 ) -> Result<(), HintError> {
     match hint {
-        &ProtostarHint::Roll { .. } => todo!(),
-        &ProtostarHint::Warp { .. } => todo!(),
+        &ProtostarHint::StartRoll { .. } => todo!(),
+        &ProtostarHint::StartWarp { .. } => todo!(),
+        &ProtostarHint::StopRoll { .. } => todo!(),
+        &ProtostarHint::StopWarp { .. } => todo!(),
         &ProtostarHint::Declare { .. } => todo!(),
         &ProtostarHint::DeclareCairo0 { .. } => todo!(),
         &ProtostarHint::StartPrank { .. } => todo!(),
