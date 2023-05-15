@@ -6,21 +6,21 @@ use crate::invocations::{
     add_input_variables, get_non_fallthrough_statement_id, CostValidationInfo,
 };
 
-pub fn build_roll(
+pub fn build_start_warp(
     builder: CompiledInvocationBuilder<'_>,
 ) -> Result<CompiledInvocation, InvocationError> {
     let failure_handle_statement_id = get_non_fallthrough_statement_id(&builder);
-    let [address, caller_address] = builder.try_get_single_cells()?;
+    let [block_timestamp, target_contract_address] = builder.try_get_single_cells()?;
 
     let mut casm_builder = CasmBuilder::default();
     add_input_variables! {casm_builder,
-        deref address;
-        deref caller_address;
+        deref block_timestamp;
+        deref target_contract_address;
     };
 
     casm_build_extend! {casm_builder,
         tempvar err_code;
-        hint ProtostarHint::Roll {address: address, caller_address: caller_address} into {err_code: err_code};
+        hint ProtostarHint::StartWarp {block_timestamp: block_timestamp, target_contract_address: target_contract_address} into {err_code: err_code};
         jump Failure if err_code != 0;
     };
 

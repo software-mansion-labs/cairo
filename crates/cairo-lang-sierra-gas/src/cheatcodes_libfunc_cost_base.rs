@@ -7,8 +7,10 @@ pub fn cheatcodes_libfunc_cost_base(libfunc: &CheatcodesConcreteLibFunc) -> Vec<
     match libfunc {
         CheatcodesConcreteLibFunc::Declare(_) => vec![steps(2), steps(2)],
         CheatcodesConcreteLibFunc::DeclareCairo0(_) => vec![steps(2), steps(2)],
-        CheatcodesConcreteLibFunc::Roll(_) => vec![steps(1), steps(1)],
-        CheatcodesConcreteLibFunc::Warp(_) => vec![steps(1), steps(1)],
+        CheatcodesConcreteLibFunc::StartRoll(_) => vec![steps(1), steps(1)],
+        CheatcodesConcreteLibFunc::StopRoll(_) => vec![steps(1), steps(1)],
+        CheatcodesConcreteLibFunc::StartWarp(_) => vec![steps(1), steps(1)],
+        CheatcodesConcreteLibFunc::StopWarp(_) => vec![steps(1), steps(1)],
         CheatcodesConcreteLibFunc::StartPrank(_) => vec![steps(1), steps(1)],
         CheatcodesConcreteLibFunc::StopPrank(_) => vec![steps(1), steps(1)],
         CheatcodesConcreteLibFunc::Invoke(_) => vec![steps(3), steps(3)],
