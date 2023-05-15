@@ -34,7 +34,7 @@ pub fn build_invoke(
         deref function_name;
         deref calldata_start;
         deref calldata_end;
-    };
+    }
 
     casm_build_extend! {casm_builder,
         tempvar panic_data_start;
@@ -51,7 +51,7 @@ pub fn build_invoke(
         tempvar failure = panic_data_end - panic_data_start;
         ap += 2;
         jump Failure if failure != 0;
-    };
+    }
 
     Ok(builder.build_from_casm_builder(
         casm_builder,

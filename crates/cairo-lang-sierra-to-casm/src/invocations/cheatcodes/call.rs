@@ -37,7 +37,7 @@ pub fn build_call(
         deref function_name;
         deref calldata_start;
         deref calldata_end;
-    };
+    }
 
     casm_build_extend! {casm_builder,
         tempvar return_data_start;

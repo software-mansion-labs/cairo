@@ -13,6 +13,9 @@ trait OptionTrait<T> {
     fn is_some(self: @Option<T>) -> bool;
     /// Returns `true` if the `Option` is `Option::None`.
     fn is_none(self: @Option<T>) -> bool;
+
+    /// Unwraps or uses the provided value
+    fn unwrap_or_else(self: Option<T>, default: T) -> T;
 }
 impl OptionTraitImpl<T> of OptionTrait<T> {
     #[inline(always)]
@@ -38,6 +41,15 @@ impl OptionTraitImpl<T> of OptionTrait<T> {
         match self {
             Option::Some(_) => false,
             Option::None(_) => true,
+        }
+    }
+    fn unwrap_or_else(self: Option<T>, default: T) -> T {
+        match self {
+            Option::Some(val) => {
+                drop(default);
+                val
+            },
+            Option::None(_) => default,
         }
     }
 }

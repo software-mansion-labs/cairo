@@ -1,6 +1,8 @@
 use array::ArrayTrait;
 use option::OptionTrait;
 use clone::Clone;
+use traits::Into;
+use integer::U128IntoFelt252;
 
 extern fn start_roll(
     block_number: felt252, target_contract_address: felt252
@@ -178,3 +180,91 @@ fn call(
         RevertedTransaction>::Err(RevertedTransaction { panic_data: x,  })
     }
 }
+
+struct TxInfoMock {
+    version: Option<felt252>,
+    account_contract_address: Option<felt252>,
+    max_fee: Option<u128>,
+    signature: Option<Array<felt252>>,
+    transaction_hash: Option<felt252>,
+    chain_id: Option<felt252>,
+    nonce: Option<felt252>,
+}
+
+trait TxInfoMockTrait {
+    fn default() -> TxInfoMock;
+}
+
+impl TxInfoMockImpl of TxInfoMockTrait {
+    fn default() -> TxInfoMock {
+        TxInfoMock {
+            version: Option::None(()),
+            account_contract_address: Option::None(()),
+            max_fee: Option::None(()),
+            signature: Option::None(()),
+            transaction_hash: Option::None(()),
+            chain_id: Option::None(()),
+            nonce: Option::None(()),
+        }
+    }
+}
+
+fn setter_and_value<T>(option: Option<T>, default: T) -> (bool, T) {
+    let is_set = option.is_some();
+    let value = option.unwrap_or_else(default);
+    (is_set, value)
+}
+
+fn start_spoof(contract_address: felt252, mock: TxInfoMock) {
+    let TxInfoMock{version, account_contract_address, max_fee, signature, transaction_hash, chain_id, nonce} = mock;
+
+    let (set_version, version) = setter_and_value(version, 0);
+
+    let (set_account_contract_address, account_contract_address) = setter_and_value(account_contract_address, 0);
+
+    let (set_max_fee, max_fee) = setter_and_value(max_fee, 0_u128);
+
+    let (set_signature, signature) = setter_and_value(signature, ArrayTrait::new());
+
+    let (set_transaction_hash, transaction_hash) = setter_and_value(transaction_hash, 0);
+
+    let (set_chain_id, chain_id) = setter_and_value(chain_id, 0);
+
+    let (set_nonce, nonce) = setter_and_value(nonce, 0);
+
+    start_spoof_impl(
+        version: version,
+        set_version: set_version,
+        account_contract_address: account_contract_address,
+        set_account_contract_address: set_account_contract_address,
+        max_fee: max_fee.into(),
+        set_max_fee: set_max_fee,
+        signature: signature,
+        set_signature: set_signature,
+        transaction_hash: transaction_hash,
+        set_transaction_hash: set_transaction_hash,
+        chain_id: chain_id,
+        set_chain_id: set_chain_id,
+        nonce: nonce,
+        set_nonce: set_nonce
+    )
+}
+
+extern fn start_spoof_impl(
+    version: felt252,
+    set_version: bool,
+    account_contract_address: felt252,
+    set_account_contract_address: bool,
+    max_fee: felt252,
+    set_max_fee: bool,
+    signature: Array::<felt252>,
+    set_signature: bool,
+    transaction_hash: felt252,
+    set_transaction_hash: bool,
+    chain_id: felt252,
+    set_chain_id: bool,
+    nonce: felt252,
+    set_nonce: bool
+) nopanic;
+
+// extern fn stop_spoof(contract_address) nopanic;

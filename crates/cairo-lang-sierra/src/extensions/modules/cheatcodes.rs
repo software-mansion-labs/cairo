@@ -5,6 +5,7 @@ use crate::extensions::lib_func::{
     BranchSignature, LibfuncSignature, OutputVarInfo, ParamSignature, SierraApChange,
     SignatureSpecializationContext,
 };
+use crate::extensions::modules::get_bool_type;
 use crate::extensions::snapshot::snapshot_ty;
 use crate::extensions::{
     NamedType, NoGenericArgsGenericLibfunc, OutputVarReferenceInfo, SpecializationError,
@@ -26,6 +27,7 @@ define_libfunc_hierarchy! {
         Prepare(PrepareLibFunc),
         Call(CallLibFunc),
         Print(PrintLibFunc),
+        StartSpoof(StartSpoofLibFunc),
     }, CheatcodesConcreteLibFunc
 }
 
@@ -595,5 +597,50 @@ impl NoGenericArgsGenericLibfunc for PrintLibFunc {
             vec![],
             SierraApChange::Known { new_vars_only: true },
         ))
+    }
+}
+
+#[derive(Default)]
+pub struct StartSpoofLibFunc {}
+impl NoGenericArgsGenericLibfunc for StartSpoofLibFunc {
+    const STR_ID: &'static str = "start_spoof_impl";
+
+    fn specialize_signature(
+        &self,
+        context: &dyn SignatureSpecializationContext,
+    ) -> Result<LibfuncSignature, SpecializationError> {
+        let felt252_ty = context.get_concrete_type(Felt252Type::id(), &[])?;
+        let arr_type = context.get_wrapped_concrete_type(ArrayType::id(), felt252_ty.clone())?;
+        let bool_ty = get_bool_type(context)?;
+        Ok(LibfuncSignature {
+            param_signatures: vec![
+                // version
+                ParamSignature::new(felt252_ty.clone()),
+                ParamSignature::new(bool_ty.clone()),
+                // account_contract_address
+                ParamSignature::new(felt252_ty.clone()),
+                ParamSignature::new(bool_ty.clone()),
+                // max_fee
+                ParamSignature::new(felt252_ty.clone()),
+                ParamSignature::new(bool_ty.clone()),
+                // signature
+                ParamSignature::new(arr_type.clone()),
+                ParamSignature::new(bool_ty.clone()),
+                // transaction_hash
+                ParamSignature::new(felt252_ty.clone()),
+                ParamSignature::new(bool_ty.clone()),
+                // chain_id
+                ParamSignature::new(felt252_ty.clone()),
+                ParamSignature::new(bool_ty.clone()),
+                // nonce
+                ParamSignature::new(felt252_ty.clone()),
+                ParamSignature::new(bool_ty.clone()),
+            ],
+            branch_signatures: vec![BranchSignature {
+                vars: vec![],
+                ap_change: SierraApChange::Known { new_vars_only: true },
+            }],
+            fallthrough: Some(0),
+        })
     }
 }

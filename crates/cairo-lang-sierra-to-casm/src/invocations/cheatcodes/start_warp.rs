@@ -16,7 +16,7 @@ pub fn build_start_warp(
     add_input_variables! {casm_builder,
         deref block_timestamp;
         deref target_contract_address;
-    };
+    }
 
     casm_build_extend! {casm_builder,
         tempvar err_code;

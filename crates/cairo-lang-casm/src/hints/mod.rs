@@ -144,6 +144,23 @@ pub enum ProtostarHint {
         panic_data_start: CellRef,
         panic_data_end: CellRef,
     },
+    StartSpoof {
+        version: ResOperand,
+        set_version: ResOperand,
+        account_contract_address: ResOperand,
+        set_account_contract_address: ResOperand,
+        max_fee: ResOperand,
+        set_max_fee: ResOperand,
+        signature_data_start: ResOperand,
+        signature_data_end: ResOperand,
+        set_signature: ResOperand,
+        transaction_hash: ResOperand,
+        set_transaction_hash: ResOperand,
+        chain_id: ResOperand,
+        set_chain_id: ResOperand,
+        nonce: ResOperand,
+        set_nonce: ResOperand,
+    },
     Print {
         start: ResOperand,
         end: ResOperand,
@@ -935,6 +952,55 @@ impl Display for ProtostarHint {
                     memory{err_code} = \
                      stop_prank(target_contract_address=memory[{target_contract_address}[0]]).\
                      err_code
+                    "
+                )
+            }
+            ProtostarHint::StartSpoof {
+                version,
+                set_version,
+                account_contract_address,
+                set_account_contract_address,
+                max_fee,
+                set_max_fee,
+                signature_data_start,
+                signature_data_end,
+                set_signature,
+                transaction_hash,
+                set_transaction_hash,
+                chain_id,
+                set_chain_id,
+                nonce,
+                set_nonce,
+            } => {
+                writedoc!(
+                    f,
+                    "
+                    signature = []
+                    it = memory[{signature_data_start}[0]]
+                    end = memory[{signature_data_end}[0]]
+                    while it != end:
+                        calldata.append(memory[it])
+                        it = it + 1
+                    signature = signature if memory[{set_signature}[0]] else None
+
+                    version = memory[{version}[0]] if memory[{set_version}[0]] else None
+                    account_contract_address = memory[{account_contract_address}[0]] if \
+                     memory[{set_account_contract_address}[0]] else None
+                    max_fee = memory[{max_fee}[0]] if memory[{set_max_fee}[0]] else None
+                    transaction_hash = memory[{transaction_hash}[0]] if \
+                     memory[{set_transaction_hash}[0]] else None
+                    chain_id = memory[{chain_id}[0]] if memory[{set_chain_id}[0]] else None
+                    nonce = memory[{nonce}[0]] if memory[{set_nonce}[0]] else None
+
+                    start_spoof_impl(
+                        version=version,
+                        account_contract_address=account_contract_address,
+                        max_fee=max_fee,
+                        signature=signature,
+                        transaction_hash=transaction_hash,
+                        chain_id=chain_id,
+                        nonce=nonce,
+                    )
                     "
                 )
             }

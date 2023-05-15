@@ -37,7 +37,7 @@ pub fn build_deploy(
         deref prepared_class_hash;
         deref prepared_constructor_calldata_start;
         deref prepared_constructor_calldata_end;
-    };
+    }
 
     casm_build_extend! {
         casm_builder,

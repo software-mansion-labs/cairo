@@ -249,3 +249,11 @@ fn test_print() {
 
     (1 == 5).print();
 }
+
+use cheatcodes::TxInfoMockTrait;
+
+#[test]
+fn test_start_spoof() {
+    let mut tx_info = TxInfoMockTrait::default;
+    start_spoof(123, tx_info);
+}

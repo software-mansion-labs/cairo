@@ -288,6 +288,11 @@ use cheatcodes::prepare;
 use cheatcodes::deploy_contract;
 use cheatcodes::deploy_contract_cairo0;
 use cheatcodes::call;
+use cheatcodes::start_spoof;
+use cheatcodes::start_spoof_impl;
+// use cheatcodes::stop_spoof;
+use cheatcodes::TxInfoMock;
+use cheatcodes::TxInfoMockTrait;
 
 mod protostar_print;
 
