@@ -233,6 +233,7 @@ fn start_spoof(contract_address: felt252, mock: TxInfoMock) {
     let (set_nonce, nonce) = setter_and_value(nonce, 0);
 
     start_spoof_impl(
+        contract_address: contract_address,
         version: version,
         set_version: set_version,
         account_contract_address: account_contract_address,
@@ -251,6 +252,7 @@ fn start_spoof(contract_address: felt252, mock: TxInfoMock) {
 }
 
 extern fn start_spoof_impl(
+    contract_address: felt252,
     version: felt252,
     set_version: bool,
     account_contract_address: felt252,

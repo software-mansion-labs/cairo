@@ -614,6 +614,8 @@ impl NoGenericArgsGenericLibfunc for StartSpoofLibFunc {
         let bool_ty = get_bool_type(context)?;
         Ok(LibfuncSignature {
             param_signatures: vec![
+                // contract_address
+                ParamSignature::new(felt252_ty.clone()),
                 // version
                 ParamSignature::new(felt252_ty.clone()),
                 ParamSignature::new(bool_ty.clone()),

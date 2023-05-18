@@ -145,6 +145,7 @@ pub enum ProtostarHint {
         panic_data_end: CellRef,
     },
     StartSpoof {
+        contract_address: ResOperand,
         version: ResOperand,
         set_version: ResOperand,
         account_contract_address: ResOperand,
@@ -956,6 +957,7 @@ impl Display for ProtostarHint {
                 )
             }
             ProtostarHint::StartSpoof {
+                contract_address,
                 version,
                 set_version,
                 account_contract_address,
@@ -979,10 +981,12 @@ impl Display for ProtostarHint {
                     it = memory[{signature_data_start}[0]]
                     end = memory[{signature_data_end}[0]]
                     while it != end:
-                        calldata.append(memory[it])
+                        signature.append(memory[it])
                         it = it + 1
+
                     signature = signature if memory[{set_signature}[0]] else None
 
+                    contract_address = memory[{contract_address}[0]]
                     version = memory[{version}[0]] if memory[{set_version}[0]] else None
                     account_contract_address = memory[{account_contract_address}[0]] if \
                      memory[{set_account_contract_address}[0]] else None
@@ -993,6 +997,7 @@ impl Display for ProtostarHint {
                     nonce = memory[{nonce}[0]] if memory[{set_nonce}[0]] else None
 
                     start_spoof_impl(
+                        contract_address=contract_address,
                         version=version,
                         account_contract_address=account_contract_address,
                         max_fee=max_fee,

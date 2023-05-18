@@ -10,6 +10,7 @@ pub fn build_start_spoof(
     builder: CompiledInvocationBuilder<'_>,
 ) -> Result<CompiledInvocation, InvocationError> {
     let [
+        contract_address,
         version,
         set_version,
         account_contract_address,
@@ -24,8 +25,9 @@ pub fn build_start_spoof(
         set_chain_id,
         nonce,
         set_nonce,
-    ] = builder.try_get_refs::<14>()?;
+    ] = builder.try_get_refs::<15>()?;
 
+    let contract_address = contract_address.try_unpack_single()?;
     let version = version.try_unpack_single()?;
     let set_version = set_version.try_unpack_single()?;
     let account_contract_address = account_contract_address.try_unpack_single()?;
@@ -45,6 +47,7 @@ pub fn build_start_spoof(
     let mut casm_builder = CasmBuilder::default();
 
     add_input_variables! {casm_builder,
+        deref contract_address;
         deref version;
         deref set_version;
         deref account_contract_address;
@@ -64,6 +67,7 @@ pub fn build_start_spoof(
 
     casm_build_extend! {casm_builder,
         hint StartSpoof {
+            contract_address: contract_address,
             version: version,
             set_version: set_version,
             account_contract_address: account_contract_address,
