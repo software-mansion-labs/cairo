@@ -1,6 +1,7 @@
 use std::any::Any;
 use std::collections::HashMap;
 use std::ops::Deref;
+use std::path::PathBuf;
 
 use ark_ff::fields::{Fp256, MontBackend, MontConfig};
 use ark_ff::{Field, PrimeField};
@@ -30,7 +31,10 @@ use num_traits::{FromPrimitive, ToPrimitive, Zero};
 
 use self::dict_manager::DictSquashExecScope;
 use crate::short_string::as_cairo_short_string;
-use crate::{Arg, RunResultValue, SierraCasmRunner};
+use crate::{Arg, RunResultValue, SierraCasmRunner, ProtostarTestConfig};
+
+use starknet_rs::testing::starknet_state::StarknetState as StarknetRsState;
+use starknet_rs::services::api::contract_classes::deprecated_contract_class::ContractClass;
 
 #[cfg(test)]
 mod test;
@@ -72,6 +76,9 @@ struct CairoHintProcessor<'a> {
     pub string_to_hint: HashMap<String, Hint>,
     // The starknet state.
     pub starknet_state: StarknetState,
+
+    protostar_test_config: Option<ProtostarTestConfig>,
+    starknet_rs_state: Option<StarknetRsState>,
 }
 
 impl<'a> CairoHintProcessor<'a> {
@@ -79,6 +86,8 @@ impl<'a> CairoHintProcessor<'a> {
         runner: Option<&'a SierraCasmRunner>,
         instructions: Instructions,
         starknet_state: StarknetState,
+        protostar_test_config: Option<ProtostarTestConfig>,
+        starknet_rs_state: Option<StarknetRsState>,
     ) -> Self {
         let mut hints_dict: HashMap<usize, Vec<HintParams>> = HashMap::new();
         let mut string_to_hint: HashMap<String, Hint> = HashMap::new();
@@ -99,7 +108,7 @@ impl<'a> CairoHintProcessor<'a> {
             }
             hint_offset += instruction.body.op_size();
         }
-        CairoHintProcessor { runner, hints_dict, string_to_hint, starknet_state }
+        CairoHintProcessor { runner, hints_dict, string_to_hint, starknet_state, protostar_test_config, starknet_rs_state }
     }
 }
 
@@ -310,7 +319,11 @@ impl HintProcessor for CairoHintProcessor<'_> {
                 return execute_core_hint_base(vm, exec_scopes, core_hint_base);
             }
             Hint::Protostar(hint) => {
-                return execute_protostar_hint(vm, exec_scopes, hint);
+                let mut starknet_rs_state = self.starknet_rs_state.as_mut()
+                    .expect("Starknet-rs state is needed for executing hints");
+                let protostar_test_config = self.protostar_test_config.as_ref()
+                    .expect("Protostar test config is needed for executing hints");
+                return execute_protostar_hint(vm, exec_scopes, hint, &mut starknet_rs_state, protostar_test_config);
             }
             Hint::Starknet(hint) => hint,
         };
@@ -529,6 +542,8 @@ impl HintProcessor for CairoHintProcessor<'_> {
                                     &[Arg::Array(values)],
                                     Some(*gas_counter),
                                     self.starknet_state.clone(),
+                                    None,
+                                    None,
                                 )
                                 .expect("Internal runner error.");
                             *gas_counter = res.gas_counter.unwrap().to_usize().unwrap();
@@ -622,6 +637,8 @@ impl HintProcessor for CairoHintProcessor<'_> {
                                 &[Arg::Array(values)],
                                 Some(*gas_counter),
                                 self.starknet_state.clone(),
+                                None,
+                                None,
                             )
                             .expect("Internal runner error.");
 
@@ -686,6 +703,8 @@ impl HintProcessor for CairoHintProcessor<'_> {
                                 &[Arg::Array(values)],
                                 Some(*gas_counter),
                                 self.starknet_state.clone(),
+                                None,
+                                None,
                             )
                             .expect("Internal runner error.");
                         *gas_counter = res.gas_counter.unwrap().to_usize().unwrap();
@@ -767,16 +786,34 @@ fn execute_core_hint_base(
 }
 
 fn execute_protostar_hint(
-    _vm: &mut VirtualMachine,
+    vm: &mut VirtualMachine,
     _exec_scopes: &mut ExecutionScopes,
     hint: &cairo_lang_casm::hints::ProtostarHint,
+    starknet_rs_state: &mut StarknetRsState,
+    protostar_test_config: &ProtostarTestConfig,
 ) -> Result<(), HintError> {
     match hint {
         &ProtostarHint::StartRoll { .. } => todo!(),
         &ProtostarHint::StartWarp { .. } => todo!(),
         &ProtostarHint::StopRoll { .. } => todo!(),
         &ProtostarHint::StopWarp { .. } => todo!(),
-        &ProtostarHint::Declare { .. } => todo!(),
+        ProtostarHint::Declare { contract, result, err_code } => {
+            let contract_value = get_val(vm, contract)?;
+
+            let contract_value_as_short_str = as_cairo_short_string(&contract_value).unwrap();
+            let path_from_config = protostar_test_config.contracts_paths.get(&contract_value_as_short_str)
+                .expect(&format!("expected contract paths for given contract name: {}", &contract_value_as_short_str));
+            
+            let contract_path = PathBuf::from(path_from_config); // TODO we should probably build this here
+            let contract_class = ContractClass::try_from(contract_path).expect(&format!("something went wrong with path {}", path_from_config));
+
+            let (ret_class_hash, _exec_info) = starknet_rs_state.declare(contract_class.clone(), None).expect("something went wrong with declare");
+
+            let class_hash_felt = Felt252::from_bytes_be(&ret_class_hash);
+            insert_value_to_cellref!(vm, result, Felt252::from(class_hash_felt))?;
+            insert_value_to_cellref!(vm, err_code, Felt252::from(0))?;
+            Ok(())
+        },
         &ProtostarHint::DeclareCairo0 { .. } => todo!(),
         &ProtostarHint::StartPrank { .. } => todo!(),
         &ProtostarHint::StopPrank { .. } => todo!(),
@@ -1305,6 +1342,8 @@ pub fn run_function<'a, 'b: 'a, Instructions: Iterator<Item = &'a Instruction> +
         context: RunFunctionContext<'_>,
     ) -> Result<(), Box<VirtualMachineError>>,
     starknet_state: StarknetState,
+    protostar_test_config: Option<ProtostarTestConfig>,
+    starknet_rs_state: Option<StarknetRsState>,
 ) -> Result<RunFunctionRes, Box<VirtualMachineError>> {
     let data: Vec<MaybeRelocatable> = instructions
         .clone()
@@ -1313,7 +1352,7 @@ pub fn run_function<'a, 'b: 'a, Instructions: Iterator<Item = &'a Instruction> +
         .map(MaybeRelocatable::from)
         .collect();
 
-    let mut hint_processor = CairoHintProcessor::new(runner, instructions, starknet_state);
+    let mut hint_processor = CairoHintProcessor::new(runner, instructions, starknet_state, protostar_test_config, starknet_rs_state);
 
     let data_len = data.len();
     let program = Program {
