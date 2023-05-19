@@ -2,6 +2,7 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::path::PathBuf;
+use std::path::Path;
 
 use ark_ff::fields::{Fp256, MontBackend, MontConfig};
 use ark_ff::{Field, PrimeField};
@@ -35,6 +36,9 @@ use crate::{Arg, RunResultValue, SierraCasmRunner, ProtostarTestConfig};
 
 use starknet_rs::testing::starknet_state::StarknetState as StarknetRsState;
 use starknet_rs::services::api::contract_classes::deprecated_contract_class::ContractClass;
+use cairo_lang_starknet::contract_class::compile_path;
+use cairo_lang_starknet::casm_contract_class::CasmContractClass;
+use cairo_lang_compiler::CompilerConfig;
 
 #[cfg(test)]
 mod test;
@@ -804,10 +808,23 @@ fn execute_protostar_hint(
             let path_from_config = protostar_test_config.contracts_paths.get(&contract_value_as_short_str)
                 .expect(&format!("expected contract paths for given contract name: {}", &contract_value_as_short_str));
             
-            let contract_path = PathBuf::from(path_from_config); // TODO we should probably build this here
-            let contract_class = ContractClass::try_from(contract_path).expect(&format!("something went wrong with path {}", path_from_config));
+            let contract_path = PathBuf::from(path_from_config);
+            // cairo => sierra
+            let sierra_contract_class = compile_path(
+                Path::new(contract_path.to_str().unwrap()),
+                None,
+                CompilerConfig {
+                    ..CompilerConfig::default()
+                },
+                None
+            ).expect("build failed");
 
-            let (ret_class_hash, _exec_info) = starknet_rs_state.declare(contract_class.clone(), None).expect("something went wrong with declare");
+            // sierra => casm
+            let casm_contract_class = CasmContractClass::from_contract_class(sierra_contract_class, true).expect("sierra to casm failed");
+            let casm_serialized = serde_json::to_string_pretty(&casm_contract_class).expect("serialization failed");
+            let starknet_rs_contract_class = ContractClass::try_from(&casm_serialized[..]).expect(&format!("error obtaining a contract class"));
+
+            let (ret_class_hash, _exec_info) = starknet_rs_state.declare(starknet_rs_contract_class, None).expect("something went wrong with declare");
 
             let class_hash_felt = Felt252::from_bytes_be(&ret_class_hash);
             insert_value_to_cellref!(vm, result, Felt252::from(class_hash_felt))?;

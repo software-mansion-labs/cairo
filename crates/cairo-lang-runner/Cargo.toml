@@ -29,6 +29,7 @@ starknet-rs = { path = "../../../starknet_in_rust" }
 
 cairo-vm.workspace = true
 clap.workspace = true
+serde_json.workspace = true
 itertools.workspace = true
 keccak.workspace = true
 num-bigint.workspace = true
