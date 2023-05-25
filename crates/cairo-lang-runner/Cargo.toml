@@ -25,7 +25,10 @@ cairo-lang-sierra-generator = { path = "../cairo-lang-sierra-generator", version
 cairo-lang-sierra-to-casm = { path = "../cairo-lang-sierra-to-casm", version = "1.0.0-rc0" }
 cairo-lang-starknet = { path = "../cairo-lang-starknet", version = "1.0.0-rc0" }
 cairo-lang-utils = { path = "../cairo-lang-utils", version = "1.0.0-rc0" }
+cairo-lang-project = { path = "../cairo-lang-project", version = "1.0.0-alpha.2" }
+starknet_api = { git = "https://github.com/starkware-libs/starknet-api", rev = "24a7249" }
 starknet-rs = { path = "../../../starknet_in_rust" }
+blockifier = { path = "../../../blockifier/crates/blockifier" }
 
 cairo-vm.workspace = true
 clap.workspace = true
@@ -37,6 +40,7 @@ num-integer.workspace = true
 num-traits.workspace = true
 salsa.workspace = true
 thiserror.workspace = true
+smol_str.workspace = true
 
 [dev-dependencies]
 pretty_assertions.workspace = true
