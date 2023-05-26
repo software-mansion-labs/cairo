@@ -1,6 +1,8 @@
 //! Basic runner for running a Sierra program on the vm.
 use std::collections::HashMap;
 
+use blockifier::state::cached_state::CachedState;
+use blockifier::test_utils::DictStateReader;
 use cairo_felt::Felt252;
 use cairo_lang_casm::instructions::Instruction;
 use cairo_lang_casm::{casm, casm_extend};
@@ -31,9 +33,6 @@ pub use casm_run::StarknetState;
 use itertools::chain;
 use num_traits::ToPrimitive;
 use thiserror::Error;
-
-use blockifier::state::cached_state::CachedState;
-use blockifier::test_utils::DictStateReader;
 
 mod casm_run;
 pub mod short_string;
