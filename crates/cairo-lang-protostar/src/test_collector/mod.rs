@@ -1,11 +1,12 @@
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{anyhow, Context, Result};
 use cairo_felt::Felt252;
 use cairo_lang_compiler::db::RootDatabase;
 use cairo_lang_compiler::diagnostics::DiagnosticsReporter;
+use cairo_lang_compiler::project::setup_project;
 use cairo_lang_debug::DebugWithDb;
 use cairo_lang_defs::ids::{FreeFunctionId, FunctionWithBodyId, ModuleItemId};
 use cairo_lang_defs::plugin::PluginDiagnostic;
@@ -13,6 +14,7 @@ use cairo_lang_diagnostics::ToOption;
 use cairo_lang_filesystem::cfg::{Cfg, CfgSet};
 use cairo_lang_filesystem::ids::CrateId;
 use cairo_lang_lowering::ids::ConcreteFunctionWithBodyId;
+use cairo_lang_runner::Arg::Array;
 use cairo_lang_semantic::db::SemanticGroup;
 use cairo_lang_semantic::items::functions::GenericFunctionId;
 use cairo_lang_semantic::{ConcreteFunction, FunctionLongId};
@@ -29,11 +31,13 @@ use cairo_lang_test_runner::plugin::TestPlugin;
 use cairo_lang_utils::OptionHelper;
 use itertools::Itertools;
 use num_traits::ToPrimitive;
+use walkdir::WalkDir;
 
 use crate::casm_generator::{SierraCasmGenerator, TestConfig as TestConfigInternal};
 use crate::setup_project_without_cairo_project_toml;
 
 /// Expectation for a panic case.
+#[derive(Debug)]
 pub enum PanicExpectation {
     /// Accept any panic value.
     Any,
@@ -42,6 +46,7 @@ pub enum PanicExpectation {
 }
 
 /// Expectation for a result of a test.
+#[derive(Debug)]
 pub enum TestExpectation {
     /// Running the test should not panic.
     Success,
@@ -50,6 +55,7 @@ pub enum TestExpectation {
 }
 
 /// The configuration for running a single test.
+#[derive(Debug)]
 pub struct TestConfig {
     /// The amount of gas the test requested.
     pub available_gas: Option<usize>,
@@ -210,12 +216,19 @@ fn extract_panic_values(db: &dyn SyntaxGroup, attr: &Attribute) -> Option<Vec<Fe
         .collect::<Option<Vec<_>>>()
 }
 
+// TODO docs
+#[derive(Debug)]
+pub struct LinkedLibrary {
+    pub name: String,
+    pub path: PathBuf,
+}
+
 // returns tuple[sierra if no output_path, list[test_name, test_config]]
 pub fn collect_tests(
-    input_path: &String,
-    output_path: Option<&String>,
-    maybe_cairo_paths: Option<Vec<(&String, &String)>>,
-    maybe_builtins: Option<Vec<&String>>,
+    input_path: &str,
+    output_path: Option<&str>,
+    linked_libraries: Option<Vec<LinkedLibrary>>,
+    builtins: Option<Vec<&str>>,
 ) -> Result<(Program, Vec<TestConfigInternal>)> {
     // code taken from crates/cairo-lang-test-runner/src/lib.rs
     let db = &mut {
@@ -227,23 +240,39 @@ pub fn collect_tests(
         b.build()?
     };
 
-    let cairo_paths = match maybe_cairo_paths {
-        Some(paths) => paths,
-        None => vec![],
-    };
-    let main_crate_name = match cairo_paths.iter().find(|(path, _crate_name)| **path == *input_path)
-    {
-        Some((_crate_path, crate_name)) => crate_name,
-        None => "",
-    };
+    let mut entries: Vec<PathBuf> = vec![];
+    for entry in WalkDir::new(&input_path) {
+        if entry.is_err() {
+            continue;
+        }
 
-    let main_crate_ids =
-        setup_project_without_cairo_project_toml(db, Path::new(&input_path), main_crate_name)
-            .with_context(|| format!("Failed to setup project for path({})", input_path))?;
+        let entry = entry.unwrap();
+        let path = entry.path();
 
-    for (cairo_path, crate_name) in cairo_paths {
-        setup_project_without_cairo_project_toml(db, Path::new(cairo_path), crate_name)
+        if path.is_file() && path.extension().map_or(false, |ex| ex == "cairo") {
+            entries.push(path.into());
+        }
+    }
+    dbg!(&entries);
+
+    let mut all_crate_ids: Vec<Vec<CrateId>> = vec![];
+    for entry in entries {
+        let crate_ids = setup_project(db, &entry)?;
+        all_crate_ids.push(crate_ids);
+    }
+
+    // let main_crate_ids = setup_project(db, Path::new(&input_path))
+    //     .with_context(|| format!("Failed to setup project for path({})", input_path))?;
+
+    if let Some(linked_libraries) = linked_libraries {
+        for linked_library in linked_libraries {
+            setup_project_without_cairo_project_toml(
+                db,
+                &linked_library.path,
+                &linked_library.name,
+            )
             .with_context(|| format!("Failed to add linked library ({})", input_path))?;
+        }
     }
 
     if DiagnosticsReporter::stderr().check(db) {
@@ -252,7 +281,14 @@ pub fn collect_tests(
              above"
         ));
     }
-    let all_tests = find_all_tests(db, main_crate_ids);
+    // let all_tests = find_all_tests(db, main_crate_ids);
+    let mut all_tests: Vec<(FreeFunctionId, TestConfig)> = vec![];
+    for crate_ids in all_crate_ids {
+        let tests = find_all_tests(db, crate_ids);
+        all_tests.extend(tests)
+    }
+
+    dbg!(&all_tests);
 
     let z: Vec<ConcreteFunctionWithBodyId> = all_tests
         .iter()
@@ -292,12 +328,12 @@ pub fn collect_tests(
 
     let sierra_program = replace_sierra_ids_in_program(db, &sierra_program);
 
-    let mut builtins = vec![];
-    if let Some(unwrapped_builtins) = maybe_builtins {
-        builtins = unwrapped_builtins.iter().map(|s| s.to_string()).collect();
+    let mut builtins2 = vec![];
+    if let Some(unwrapped_builtins) = builtins {
+        builtins2 = unwrapped_builtins.iter().map(|s| s.to_string()).collect();
     }
 
-    validate_tests(sierra_program.clone(), &collected_tests, builtins)
+    validate_tests(sierra_program.clone(), &collected_tests, builtins2)
         .context("Test validation failed")?;
 
     if let Some(path) = output_path {

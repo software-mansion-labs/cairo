@@ -46,6 +46,7 @@ cairo-lang-starknet = { path = "../cairo-lang-starknet", version = "1.0.0-alpha.
 cairo-lang-syntax = { path = "../cairo-lang-syntax", version = "1.0.0-alpha.2" }
 thiserror.workspace = true
 cairo-lang-utils = { path = "../cairo-lang-utils", version = "1.0.0-alpha.2" }
+walkdir = "2.3.3"
 
 [[bin]]
 name = "cairo-protostar"
