@@ -812,7 +812,7 @@ use blockifier::execution::contract_class::ContractClass as BlockifierContractCl
 use blockifier::transaction::transactions::{DeclareTransaction, ExecutableTransaction};
 use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::block_context::BlockContext;
-use blockifier::transaction::transactions::declare_tx_default;
+use blockifier::transaction::transaction_utils::declare_tx_default;
 use std::{str, i64};
 
 pub fn build_project_config(
