@@ -27,7 +27,6 @@ cairo-lang-starknet = { path = "../cairo-lang-starknet", version = "1.0.0-rc0" }
 cairo-lang-utils = { path = "../cairo-lang-utils", version = "1.0.0-rc0" }
 cairo-lang-project = { path = "../cairo-lang-project", version = "1.0.0-alpha.2" }
 starknet_api = { git = "https://github.com/starkware-libs/starknet-api", rev = "24a7249" }
-starknet-rs = { path = "../../../starknet_in_rust" }
 blockifier = { path = "../../../blockifier/crates/blockifier" }
 
 cairo-vm.workspace = true
