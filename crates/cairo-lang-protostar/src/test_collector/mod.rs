@@ -217,7 +217,7 @@ fn extract_panic_values(db: &dyn SyntaxGroup, attr: &Attribute) -> Option<Vec<Fe
 }
 
 // TODO docs
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LinkedLibrary {
     pub name: String,
     pub path: PathBuf,
@@ -240,29 +240,8 @@ pub fn collect_tests(
         b.build()?
     };
 
-    let mut entries: Vec<PathBuf> = vec![];
-    for entry in WalkDir::new(&input_path) {
-        if entry.is_err() {
-            continue;
-        }
-
-        let entry = entry.unwrap();
-        let path = entry.path();
-
-        if path.is_file() && path.extension().map_or(false, |ex| ex == "cairo") {
-            entries.push(path.into());
-        }
-    }
-    dbg!(&entries);
-
-    let mut all_crate_ids: Vec<Vec<CrateId>> = vec![];
-    for entry in entries {
-        let crate_ids = setup_project(db, &entry)?;
-        all_crate_ids.push(crate_ids);
-    }
-
-    // let main_crate_ids = setup_project(db, Path::new(&input_path))
-    //     .with_context(|| format!("Failed to setup project for path({})", input_path))?;
+    let main_crate_ids = setup_project(db, Path::new(&input_path))
+        .with_context(|| format!("Failed to setup project for path({})", input_path))?;
 
     if let Some(linked_libraries) = linked_libraries {
         for linked_library in linked_libraries {
@@ -281,12 +260,7 @@ pub fn collect_tests(
              above"
         ));
     }
-    // let all_tests = find_all_tests(db, main_crate_ids);
-    let mut all_tests: Vec<(FreeFunctionId, TestConfig)> = vec![];
-    for crate_ids in all_crate_ids {
-        let tests = find_all_tests(db, crate_ids);
-        all_tests.extend(tests)
-    }
+    let all_tests = find_all_tests(db, main_crate_ids);
 
     dbg!(&all_tests);
 
