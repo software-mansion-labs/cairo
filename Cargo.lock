@@ -610,7 +610,6 @@ dependencies = [
  "smol_str",
  "thiserror",
  "unescaper",
- "walkdir",
 ]
 
 [[package]]
