@@ -31,7 +31,6 @@ use cairo_lang_test_runner::plugin::TestPlugin;
 use cairo_lang_utils::OptionHelper;
 use itertools::Itertools;
 use num_traits::ToPrimitive;
-use walkdir::WalkDir;
 
 use crate::casm_generator::{SierraCasmGenerator, TestConfig as TestConfigInternal};
 use crate::setup_project_without_cairo_project_toml;
