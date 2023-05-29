@@ -261,8 +261,6 @@ pub fn collect_tests(
     }
     let all_tests = find_all_tests(db, main_crate_ids);
 
-    dbg!(&all_tests);
-
     let z: Vec<ConcreteFunctionWithBodyId> = all_tests
         .iter()
         .flat_map(|(func_id, _cfg)| ConcreteFunctionWithBodyId::from_no_generics_free(db, *func_id))
