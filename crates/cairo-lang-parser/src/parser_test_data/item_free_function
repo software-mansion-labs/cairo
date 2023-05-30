@@ -27,35 +27,29 @@ FunctionSignature
     │   │   ├── hash (kind: TokenHash): '#'
     │   │   ├── lbrack (kind: TokenLBrack): '['
     │   │   ├── attr (kind: TokenIdentifier): 'external'
-    │   │   ├── arguments (kind: OptionArgListParenthesizedEmpty) []
+    │   │   ├── args (kind: OptionAttributeArgsEmpty) []
     │   │   └── rbrack (kind: TokenRBrack): ']'
     │   ├── child #1 (kind: Attribute)
     │   │   ├── hash (kind: TokenHash): '#'
     │   │   ├── lbrack (kind: TokenLBrack): '['
     │   │   ├── attr (kind: TokenIdentifier): 'with_args'
-    │   │   ├── arguments (kind: ArgListParenthesized)
+    │   │   ├── args (kind: AttributeArgs)
     │   │   │   ├── lparen (kind: TokenLParen): '('
-    │   │   │   ├── args (kind: ArgList)
-    │   │   │   │   ├── item #0 (kind: Arg)
-    │   │   │   │   │   ├── modifiers (kind: ModifierList) []
-    │   │   │   │   │   └── arg_clause (kind: ArgClauseUnnamed)
-    │   │   │   │   │       └── value (kind: ExprPath)
-    │   │   │   │   │           └── item #0 (kind: PathSegmentSimple)
-    │   │   │   │   │               └── ident (kind: TokenIdentifier): 'arg1'
+    │   │   │   ├── arg_list (kind: AttributeArgList)
+    │   │   │   │   ├── item #0 (kind: ExprPath)
+    │   │   │   │   │   └── item #0 (kind: PathSegmentSimple)
+    │   │   │   │   │       └── ident (kind: TokenIdentifier): 'arg1'
     │   │   │   │   ├── separator #0 (kind: TokenComma): ','
-    │   │   │   │   └── item #1 (kind: Arg)
-    │   │   │   │       ├── modifiers (kind: ModifierList) []
-    │   │   │   │       └── arg_clause (kind: ArgClauseUnnamed)
-    │   │   │   │           └── value (kind: ExprPath)
-    │   │   │   │               └── item #0 (kind: PathSegmentSimple)
-    │   │   │   │                   └── ident (kind: TokenIdentifier): 'arg2'
+    │   │   │   │   └── item #1 (kind: ExprPath)
+    │   │   │   │       └── item #0 (kind: PathSegmentSimple)
+    │   │   │   │           └── ident (kind: TokenIdentifier): 'arg2'
     │   │   │   └── rparen (kind: TokenRParen): ')'
     │   │   └── rbrack (kind: TokenRBrack): ']'
     │   └── child #2 (kind: Attribute)
     │       ├── hash (kind: TokenHash): '#'
     │       ├── lbrack (kind: TokenLBrack): '['
     │       ├── attr (kind: TokenIdentifier): 'view'
-    │       ├── arguments (kind: OptionArgListParenthesizedEmpty) []
+    │       ├── args (kind: OptionAttributeArgsEmpty) []
     │       └── rbrack (kind: TokenRBrack): ']'
     ├── declaration (kind: FunctionDeclaration)
     │   ├── function_kw (kind: TokenFunction): 'fn'

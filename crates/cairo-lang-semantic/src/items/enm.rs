@@ -3,18 +3,18 @@ use std::sync::Arc;
 use cairo_lang_defs::ids::{EnumId, LanguageElementId, VariantId, VariantLongId};
 use cairo_lang_diagnostics::{Diagnostics, Maybe, ToMaybe};
 use cairo_lang_proc_macros::{DebugWithDb, SemanticObject};
-use cairo_lang_syntax::attribute::structured::{Attribute, AttributeListStructurize};
 use cairo_lang_syntax::node::{Terminal, TypedSyntaxNode};
 use cairo_lang_utils::ordered_hash_map::OrderedHashMap;
 use cairo_lang_utils::Upcast;
 use itertools::enumerate;
 use smol_str::SmolStr;
 
+use super::attribute::{ast_attributes_to_semantic, Attribute};
 use super::generics::semantic_generic_params;
 use crate::db::SemanticGroup;
 use crate::diagnostic::SemanticDiagnosticKind::*;
 use crate::diagnostic::SemanticDiagnostics;
-use crate::resolve::{Resolver, ResolverData};
+use crate::resolve_path::{ResolvedLookback, Resolver};
 use crate::substitution::{GenericSubstitution, SemanticRewriter, SubstitutionRewriter};
 use crate::types::resolve_type;
 use crate::{semantic, ConcreteEnumId, SemanticDiagnostic};
@@ -30,7 +30,7 @@ pub struct EnumDeclarationData {
     diagnostics: Diagnostics<SemanticDiagnostic>,
     generic_params: Vec<semantic::GenericParam>,
     attributes: Vec<Attribute>,
-    resolver_data: Arc<ResolverData>,
+    resolved_lookback: Arc<ResolvedLookback>,
 }
 
 /// Query implementation of [crate::db::SemanticGroup::priv_enum_declaration_data].
@@ -48,33 +48,23 @@ pub fn priv_enum_declaration_data(
     let syntax_db = db.upcast();
 
     // Generic params.
-    let mut resolver = Resolver::new(db, module_file_id);
+    let mut resolver = Resolver::new_with_inference(db, module_file_id);
     let generic_params = semantic_generic_params(
         db,
         &mut diagnostics,
         &mut resolver,
         module_file_id,
         &enum_ast.generic_params(db.upcast()),
-        false,
     )?;
 
-    let attributes = enum_ast.attributes(syntax_db).structurize(syntax_db);
+    let attributes = ast_attributes_to_semantic(syntax_db, enum_ast.attributes(syntax_db));
+    let resolved_lookback = Arc::new(resolver.lookback);
 
-    // Check fully resolved.
-    if let Some((stable_ptr, inference_err)) = resolver.inference().finalize() {
-        inference_err.report(&mut diagnostics, stable_ptr);
-    }
-    let generic_params = resolver
-        .inference()
-        .rewrite(generic_params)
-        .map_err(|err| err.report(&mut diagnostics, enum_ast.stable_ptr().untyped()))?;
-
-    let resolver_data = Arc::new(resolver.data);
     Ok(EnumDeclarationData {
         diagnostics: diagnostics.build(),
         generic_params,
         attributes,
-        resolver_data,
+        resolved_lookback,
     })
 }
 
@@ -94,12 +84,12 @@ pub fn enum_generic_params(
     Ok(db.priv_enum_declaration_data(enum_id)?.generic_params)
 }
 
-/// Query implementation of [crate::db::SemanticGroup::enum_declaration_resolver_data].
-pub fn enum_declaration_resolver_data(
+/// Query implementation of [crate::db::SemanticGroup::enum_declaration_resolved_lookback].
+pub fn enum_declaration_resolved_lookback(
     db: &dyn SemanticGroup,
     enum_id: EnumId,
-) -> Maybe<Arc<ResolverData>> {
-    Ok(db.priv_enum_declaration_data(enum_id)?.resolver_data)
+) -> Maybe<Arc<ResolvedLookback>> {
+    Ok(db.priv_enum_declaration_data(enum_id)?.resolved_lookback)
 }
 
 // Definition
@@ -109,7 +99,7 @@ pub struct EnumDefinitionData {
     diagnostics: Diagnostics<SemanticDiagnostic>,
     variants: OrderedHashMap<SmolStr, VariantId>,
     variant_semantic: OrderedHashMap<VariantId, Variant>,
-    resolver_data: Arc<ResolverData>,
+    resolved_lookback: Arc<ResolvedLookback>,
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, DebugWithDb)]
@@ -148,7 +138,7 @@ pub fn priv_enum_definition_data(
     let syntax_db = db.upcast();
 
     // Generic params.
-    let mut resolver = Resolver::new(db, module_file_id);
+    let mut resolver = Resolver::new_without_inference(db, module_file_id);
     let generic_params = db.enum_generic_params(enum_id)?;
     for generic_param in generic_params {
         resolver.add_generic_param(generic_param);
@@ -172,23 +162,13 @@ pub fn priv_enum_definition_data(
         variant_semantic.insert(id, Variant { enum_id, id, ty, idx: variant_idx });
     }
 
-    // Check fully resolved.
-    if let Some((stable_ptr, inference_err)) = resolver.inference().finalize() {
-        inference_err.report(&mut diagnostics, stable_ptr);
-    }
-    for (_, variant) in variant_semantic.iter_mut() {
-        variant.ty = resolver
-            .inference()
-            .rewrite(variant.ty)
-            .map_err(|err| err.report(&mut diagnostics, enum_ast.stable_ptr().untyped()))?;
-    }
+    let resolved_lookback = Arc::new(resolver.lookback);
 
-    let resolver_data = Arc::new(resolver.data);
     Ok(EnumDefinitionData {
         diagnostics: diagnostics.build(),
         variants,
         variant_semantic,
-        resolver_data,
+        resolved_lookback,
     })
 }
 
@@ -200,12 +180,12 @@ pub fn enum_definition_diagnostics(
     db.priv_enum_definition_data(enum_id).map(|data| data.diagnostics).unwrap_or_default()
 }
 
-/// Query implementation of [crate::db::SemanticGroup::enum_definition_resolver_data].
-pub fn enum_definition_resolver_data(
+/// Query implementation of [crate::db::SemanticGroup::enum_definition_resolved_lookback].
+pub fn enum_definition_resolved_lookback(
     db: &dyn SemanticGroup,
     enum_id: EnumId,
-) -> Maybe<Arc<ResolverData>> {
-    Ok(db.priv_enum_definition_data(enum_id)?.resolver_data)
+) -> Maybe<Arc<ResolvedLookback>> {
+    Ok(db.priv_enum_definition_data(enum_id)?.resolved_lookback)
 }
 
 /// Query implementation of [crate::db::SemanticGroup::enum_variants].

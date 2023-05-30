@@ -55,7 +55,7 @@ pub struct Parameter {
 }
 
 /// The mutability attribute of a variable.
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Copy)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Mutability {
     /// The variable can't be changed.
     Immutable,

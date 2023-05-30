@@ -8,7 +8,6 @@ use cairo_lang_utils::ordered_hash_map::OrderedHashMap;
 
 use crate::db::LoweringGroup;
 use crate::fmt::LoweredFormatter;
-use crate::ids::ConcreteFunctionWithBodyId;
 use crate::inline::apply_inlining;
 use crate::test_utils::LoweringDatabaseForTesting;
 
@@ -16,6 +15,7 @@ cairo_lang_test_utils::test_file_test!(
     inlining,
     "src/inline/test_data",
     {
+
         inline :"inline",
         inline_diagnostics :"inline_diagnostics",
     },
@@ -34,14 +34,14 @@ fn test_function_inlining(
         inputs["module_code"].as_str(),
     )
     .split();
-    let function_id =
-        ConcreteFunctionWithBodyId::from_semantic(db, test_function.concrete_function_id);
+    let before = db
+        .priv_concrete_function_with_body_lowered_flat(test_function.concrete_function_id)
+        .unwrap();
 
-    let before = db.priv_concrete_function_with_body_lowered_flat(function_id).unwrap();
     let lowering_diagnostics = db.module_lowering_diagnostics(test_function.module_id).unwrap();
 
     let mut after = before.deref().clone();
-    apply_inlining(db, function_id, &mut after).unwrap();
+    apply_inlining(db, test_function.function_id, &mut after).unwrap();
 
     OrderedHashMap::from([
         ("semantic_diagnostics".into(), semantic_diagnostics),

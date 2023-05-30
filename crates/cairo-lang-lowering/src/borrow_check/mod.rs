@@ -7,7 +7,6 @@ pub use self::demand::Demand;
 use self::demand::DemandReporter;
 use crate::blocks::Blocks;
 use crate::borrow_check::analysis::BackAnalysis;
-use crate::db::LoweringGroup;
 use crate::diagnostic::LoweringDiagnosticKind::*;
 use crate::diagnostic::LoweringDiagnostics;
 use crate::{BlockId, FlatLowered, MatchInfo, Statement, VarRemapping, VariableId};
@@ -17,7 +16,6 @@ pub mod demand;
 
 pub type LoweredDemand = Demand<VariableId>;
 pub struct BorrowChecker<'a> {
-    db: &'a dyn LoweringGroup,
     diagnostics: &'a mut LoweringDiagnostics,
     lowered: &'a FlatLowered,
     success: Maybe<()>,
@@ -27,13 +25,13 @@ impl<'a> DemandReporter<VariableId> for BorrowChecker<'a> {
     type IntroducePosition = ();
     type UsePosition = ();
 
-    fn drop(&mut self, _position: (), var_id: VariableId) {
-        let var = &self.lowered.variables[var_id];
-        let Err(drop_err) = var.droppable.clone() else { return; };
-        let Err(destruct_err) = var.destruct_impl.clone() else { return; };
-        self.success = Err(self
-            .diagnostics
-            .report_by_location(var.location, VariableNotDropped { drop_err, destruct_err }));
+    fn drop(&mut self, _position: (), var: VariableId) {
+        let var = &self.lowered.variables[var];
+        if let Err(inference_error) = var.droppable.clone() {
+            self.success = Err(self
+                .diagnostics
+                .report_by_location(var.location, VariableNotDropped { inference_error }));
+        }
     }
 
     fn dup(&mut self, _position: (), var: VariableId) {
@@ -46,7 +44,7 @@ impl<'a> DemandReporter<VariableId> for BorrowChecker<'a> {
     }
 }
 
-impl<'a> Analyzer<'_> for BorrowChecker<'a> {
+impl<'a> Analyzer for BorrowChecker<'a> {
     type Info = LoweredDemand;
 
     fn visit_stmt(
@@ -55,42 +53,27 @@ impl<'a> Analyzer<'_> for BorrowChecker<'a> {
         _statement_location: StatementLocation,
         stmt: &Statement,
     ) {
-        info.variables_introduced(self, &stmt.outputs(), ());
-        match stmt {
-            Statement::Call(stmt) => {
-                if let Ok(signature) = stmt.function.signature(self.db) {
-                    if signature.panicable {
-                        // Be prepared to panic here.
-                        let panic_demand = LoweredDemand::default();
-                        *info = LoweredDemand::merge_demands(
-                            &[(panic_demand, ()), (info.clone(), ())],
-                            self,
-                        );
-                    }
-                }
+        if let Statement::Desnap(stmt) = stmt {
+            let var = &self.lowered.variables[stmt.output];
+            if let Err(inference_error) = var.duplicatable.clone() {
+                self.success = Err(self.diagnostics.report_by_location(
+                    var.location,
+                    DesnappingANonCopyableType { inference_error },
+                ));
             }
-            Statement::Desnap(stmt) => {
-                let var = &self.lowered.variables[stmt.output];
-                if let Err(inference_error) = var.duplicatable.clone() {
-                    self.success = Err(self.diagnostics.report_by_location(
-                        var.location,
-                        DesnappingANonCopyableType { inference_error },
-                    ));
-                }
-            }
-            _ => {}
         }
+        info.variables_introduced(self, &stmt.outputs(), ());
         info.variables_used(self, &stmt.inputs(), ());
     }
 
-    fn visit_goto(
+    fn visit_remapping(
         &mut self,
         info: &mut Self::Info,
-        _statement_location: StatementLocation,
+        _block_id: BlockId,
         _target_block_id: BlockId,
         remapping: &VarRemapping,
     ) {
-        info.apply_remapping(self, remapping.iter().map(|(dst, src)| (*dst, *src)), ());
+        info.apply_remapping(self, remapping.iter().map(|(dst, src)| (*dst, *src)));
     }
 
     fn merge_match(
@@ -133,23 +116,18 @@ impl<'a> Analyzer<'_> for BorrowChecker<'a> {
 }
 
 /// Report borrow checking diagnostics.
-pub fn borrow_check(
-    db: &dyn LoweringGroup,
-    module_file_id: ModuleFileId,
-    lowered: &mut FlatLowered,
-) {
+pub fn borrow_check(module_file_id: ModuleFileId, lowered: &mut FlatLowered) {
     let mut diagnostics = LoweringDiagnostics::new(module_file_id);
     diagnostics.diagnostics.extend(std::mem::take(&mut lowered.diagnostics));
 
     if lowered.blocks.has_root().is_ok() {
-        let checker = BorrowChecker { db, diagnostics: &mut diagnostics, lowered, success: Ok(()) };
+        let checker = BorrowChecker { diagnostics: &mut diagnostics, lowered, success: Ok(()) };
         let mut analysis =
             BackAnalysis { lowered: &*lowered, cache: Default::default(), analyzer: checker };
         let mut root_demand = analysis.get_root_info();
         root_demand.variables_introduced(&mut analysis.analyzer, &lowered.parameters, ());
         let success = analysis.analyzer.success;
         assert!(root_demand.finalize(), "Undefined variable should not happen at this stage");
-
         if let Err(diag_added) = success {
             lowered.blocks = Blocks::new_errored(diag_added);
         }

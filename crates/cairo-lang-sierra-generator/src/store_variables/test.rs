@@ -44,7 +44,12 @@ fn get_lib_func_signature(db: &dyn SierraGenGroup, libfunc: ConcreteLibfuncId) -
             LibfuncSignature {
                 param_signatures: vec![
                     ParamSignature::new(felt252_ty.clone()),
-                    ParamSignature::new(felt252_ty).with_allow_const(),
+                    ParamSignature {
+                        ty: felt252_ty,
+                        allow_deferred: false,
+                        allow_add_const: false,
+                        allow_const: true,
+                    },
                 ],
                 branch_signatures: vec![BranchSignature {
                     vars,
@@ -54,7 +59,12 @@ fn get_lib_func_signature(db: &dyn SierraGenGroup, libfunc: ConcreteLibfuncId) -
             }
         }
         "felt252_add3" => LibfuncSignature {
-            param_signatures: vec![ParamSignature::new(felt252_ty.clone()).with_allow_add_const()],
+            param_signatures: vec![ParamSignature {
+                ty: felt252_ty.clone(),
+                allow_deferred: false,
+                allow_add_const: true,
+                allow_const: false,
+            }],
             branch_signatures: vec![BranchSignature {
                 vars: vec![OutputVarInfo {
                     ty: felt252_ty,
@@ -79,7 +89,12 @@ fn get_lib_func_signature(db: &dyn SierraGenGroup, libfunc: ConcreteLibfuncId) -
         },
         "array_append" => LibfuncSignature {
             param_signatures: vec![
-                ParamSignature::new(array_ty.clone()).with_allow_add_const(),
+                ParamSignature {
+                    ty: array_ty.clone(),
+                    allow_deferred: false,
+                    allow_add_const: true,
+                    allow_const: false,
+                },
                 ParamSignature::new(felt252_ty),
             ],
             branch_signatures: vec![BranchSignature {
@@ -113,7 +128,7 @@ fn get_lib_func_signature(db: &dyn SierraGenGroup, libfunc: ConcreteLibfuncId) -
             let vars: Vec<_> = (0..4)
                 .map(|idx| OutputVarInfo {
                     ty: felt252_ty.clone(),
-                    ref_info: OutputVarReferenceInfo::NewTempVar { idx },
+                    ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(idx) },
                 })
                 .collect();
             LibfuncSignature {
@@ -171,7 +186,7 @@ fn get_lib_func_signature(db: &dyn SierraGenGroup, libfunc: ConcreteLibfuncId) -
             branch_signatures: vec![BranchSignature {
                 vars: vec![OutputVarInfo {
                     ty: felt252_ty,
-                    ref_info: OutputVarReferenceInfo::NewTempVar { idx: 0 },
+                    ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
                 }],
                 ap_change: SierraApChange::Known { new_vars_only: true },
             }],
@@ -182,7 +197,7 @@ fn get_lib_func_signature(db: &dyn SierraGenGroup, libfunc: ConcreteLibfuncId) -
             vec![OutputVarInfo {
                 ty: felt252_ty,
                 // Simulate the case where the returned value is not on the top of the stack.
-                ref_info: OutputVarReferenceInfo::SimpleDerefs,
+                ref_info: OutputVarReferenceInfo::NewTempVar { idx: None },
             }],
             SierraApChange::Known { new_vars_only: false },
         ),

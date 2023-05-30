@@ -1,4 +1,4 @@
-use super::int::unsigned128::Uint128Type;
+use super::uint128::Uint128Type;
 use crate::extensions::lib_func::{
     DeferredOutputKind, LibfuncSignature, OutputVarInfo, ParamSignature, SierraApChange,
     SignatureSpecializationContext,
@@ -35,7 +35,12 @@ impl NoGenericArgsGenericLibfunc for BitwiseLibfunc {
         let u128_ty = context.get_concrete_type(Uint128Type::id(), &[])?;
         Ok(LibfuncSignature::new_non_branch_ex(
             vec![
-                ParamSignature::new(bitwise_ty.clone()).with_allow_add_const(),
+                ParamSignature {
+                    ty: bitwise_ty.clone(),
+                    allow_deferred: false,
+                    allow_add_const: true,
+                    allow_const: false,
+                },
                 ParamSignature::new(u128_ty.clone()),
                 ParamSignature::new(u128_ty.clone()),
             ],

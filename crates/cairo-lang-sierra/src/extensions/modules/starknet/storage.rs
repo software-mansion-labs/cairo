@@ -1,13 +1,13 @@
 use super::syscalls::SyscallGenericLibfunc;
 use crate::extensions::consts::{ConstGenLibfunc, WrapConstGenLibfunc};
 use crate::extensions::felt252::Felt252Type;
-use crate::extensions::int::unsigned::{Uint32Type, Uint8Type};
 use crate::extensions::lib_func::{
     DeferredOutputKind, LibfuncSignature, OutputVarInfo, ParamSignature, SierraApChange,
     SignatureSpecializationContext,
 };
 use crate::extensions::range_check::RangeCheckType;
 use crate::extensions::try_from_felt252::TryFromFelt252;
+use crate::extensions::uint::{Uint32Type, Uint8Type};
 use crate::extensions::{
     NamedType, NoGenericArgsGenericLibfunc, NoGenericArgsGenericType, OutputVarReferenceInfo,
     SpecializationError,
@@ -120,8 +120,12 @@ impl NoGenericArgsGenericLibfunc for StorageAddressFromBaseAndOffsetLibfunc {
         Ok(LibfuncSignature::new_non_branch_ex(
             vec![
                 ParamSignature::new(context.get_concrete_type(StorageBaseAddressType::id(), &[])?),
-                ParamSignature::new(context.get_concrete_type(Uint8Type::id(), &[])?)
-                    .with_allow_const(),
+                ParamSignature {
+                    ty: context.get_concrete_type(Uint8Type::id(), &[])?,
+                    allow_deferred: false,
+                    allow_add_const: false,
+                    allow_const: true,
+                },
             ],
             vec![OutputVarInfo {
                 ty: context.get_concrete_type(StorageAddressType::id(), &[])?,
@@ -145,7 +149,12 @@ impl NoGenericArgsGenericLibfunc for StorageBaseAddressFromFelt252Libfunc {
         let range_check_ty = context.get_concrete_type(RangeCheckType::id(), &[])?;
         Ok(LibfuncSignature::new_non_branch_ex(
             vec![
-                ParamSignature::new(range_check_ty.clone()).with_allow_add_const(),
+                ParamSignature {
+                    ty: range_check_ty.clone(),
+                    allow_deferred: false,
+                    allow_add_const: true,
+                    allow_const: false,
+                },
                 ParamSignature::new(context.get_concrete_type(Felt252Type::id(), &[])?),
             ],
             vec![
@@ -157,7 +166,7 @@ impl NoGenericArgsGenericLibfunc for StorageBaseAddressFromFelt252Libfunc {
                 },
                 OutputVarInfo {
                     ty: context.get_concrete_type(StorageBaseAddressType::id(), &[])?,
-                    ref_info: OutputVarReferenceInfo::NewTempVar { idx: 0 },
+                    ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
                 },
             ],
             SierraApChange::Known { new_vars_only: false },

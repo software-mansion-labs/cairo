@@ -27,14 +27,11 @@ mod TestContract {
     use starknet::SyscallResultTraitImpl;
 
 
-    const TEST_CLASS_HASH: felt252 = 62288530617744152381352639636067582354665647584499298700651590448880783111;
     
     mod var_felt252 {
         use starknet::class_hash::ClassHashSerde;
         use starknet::contract_address::ContractAddressSerde;
         use starknet::storage_access::StorageAddressSerde;
-        use option::OptionTrait;
-        use option::OptionTraitImpl;
         use starknet::SyscallResultTrait;
         use starknet::SyscallResultTraitImpl;
 
@@ -63,8 +60,6 @@ mod TestContract {
         use starknet::class_hash::ClassHashSerde;
         use starknet::contract_address::ContractAddressSerde;
         use starknet::storage_access::StorageAddressSerde;
-        use option::OptionTrait;
-        use option::OptionTraitImpl;
         use starknet::SyscallResultTrait;
         use starknet::SyscallResultTraitImpl;
 
@@ -93,8 +88,6 @@ mod TestContract {
         use starknet::class_hash::ClassHashSerde;
         use starknet::contract_address::ContractAddressSerde;
         use starknet::storage_access::StorageAddressSerde;
-        use option::OptionTrait;
-        use option::OptionTraitImpl;
         use starknet::SyscallResultTrait;
         use starknet::SyscallResultTraitImpl;
 
@@ -123,8 +116,6 @@ mod TestContract {
         use starknet::class_hash::ClassHashSerde;
         use starknet::contract_address::ContractAddressSerde;
         use starknet::storage_access::StorageAddressSerde;
-        use option::OptionTrait;
-        use option::OptionTraitImpl;
         use starknet::SyscallResultTrait;
         use starknet::SyscallResultTraitImpl;
 
@@ -153,8 +144,6 @@ mod TestContract {
         use starknet::class_hash::ClassHashSerde;
         use starknet::contract_address::ContractAddressSerde;
         use starknet::storage_access::StorageAddressSerde;
-        use option::OptionTrait;
-        use option::OptionTraitImpl;
         use starknet::SyscallResultTrait;
         use starknet::SyscallResultTraitImpl;
 
@@ -183,8 +172,6 @@ mod TestContract {
         use starknet::class_hash::ClassHashSerde;
         use starknet::contract_address::ContractAddressSerde;
         use starknet::storage_access::StorageAddressSerde;
-        use option::OptionTrait;
-        use option::OptionTraitImpl;
         use starknet::SyscallResultTrait;
         use starknet::SyscallResultTraitImpl;
 
@@ -213,8 +200,6 @@ mod TestContract {
         use starknet::class_hash::ClassHashSerde;
         use starknet::contract_address::ContractAddressSerde;
         use starknet::storage_access::StorageAddressSerde;
-        use option::OptionTrait;
-        use option::OptionTraitImpl;
         use starknet::SyscallResultTrait;
         use starknet::SyscallResultTraitImpl;
 
@@ -243,8 +228,6 @@ mod TestContract {
         use starknet::class_hash::ClassHashSerde;
         use starknet::contract_address::ContractAddressSerde;
         use starknet::storage_access::StorageAddressSerde;
-        use option::OptionTrait;
-        use option::OptionTraitImpl;
         use starknet::SyscallResultTrait;
         use starknet::SyscallResultTraitImpl;
 
@@ -274,8 +257,6 @@ mod TestContract {
         use starknet::class_hash::ClassHashSerde;
         use starknet::contract_address::ContractAddressSerde;
         use starknet::storage_access::StorageAddressSerde;
-        use option::OptionTrait;
-        use option::OptionTraitImpl;
         use starknet::SyscallResultTrait;
         use starknet::SyscallResultTraitImpl;
 
@@ -305,8 +286,6 @@ mod TestContract {
         use starknet::class_hash::ClassHashSerde;
         use starknet::contract_address::ContractAddressSerde;
         use starknet::storage_access::StorageAddressSerde;
-        use option::OptionTrait;
-        use option::OptionTraitImpl;
         use starknet::SyscallResultTrait;
         use starknet::SyscallResultTraitImpl;
 
@@ -344,8 +323,6 @@ mod TestContract {
         use starknet::class_hash::ClassHashSerde;
         use starknet::contract_address::ContractAddressSerde;
         use starknet::storage_access::StorageAddressSerde;
-        use option::OptionTrait;
-        use option::OptionTraitImpl;
 
         
     }
@@ -354,8 +331,6 @@ mod TestContract {
         use starknet::class_hash::ClassHashSerde;
         use starknet::contract_address::ContractAddressSerde;
         use starknet::storage_access::StorageAddressSerde;
-        use option::OptionTrait;
-        use option::OptionTraitImpl;
 
         
     }
@@ -364,8 +339,6 @@ mod TestContract {
         use starknet::class_hash::ClassHashSerde;
         use starknet::contract_address::ContractAddressSerde;
         use starknet::storage_access::StorageAddressSerde;
-        use option::OptionTrait;
-        use option::OptionTraitImpl;
 
         
     }

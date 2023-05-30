@@ -40,7 +40,6 @@ mod TestContract {
         ArrayTrait::new().span()
     }
 
-    const TEST_CLASS_HASH: felt252 = 1595346637997809727776061868410989672215034814070995454976363664880494301941;
     
 
     
@@ -59,13 +58,18 @@ mod TestContract {
         use starknet::class_hash::ClassHashSerde;
         use starknet::contract_address::ContractAddressSerde;
         use starknet::storage_access::StorageAddressSerde;
-        use option::OptionTrait;
-        use option::OptionTraitImpl;
 
-        #[implicit_precedence(Pedersen, RangeCheck, Bitwise, EcOp, Poseidon, SegmentArena, GasBuiltin, System)]
         fn test_raw_output(mut data: Span::<felt252>) -> Span::<felt252> {
             internal::revoke_ap_tracking();
-            gas::withdraw_gas().expect('Out of gas');
+            match gas::withdraw_gas() {
+                Option::Some(_) => {
+                },
+                Option::None(_) => {
+                    let mut err_data = array::array_new();
+                    array::array_append(ref err_data, 'Out of gas');
+                    panic(err_data)
+                },
+            }
             
             if !array::SpanTrait::is_empty(data) {
                 // Force the inclusion of `System` in the list of implicits.
@@ -75,13 +79,28 @@ mod TestContract {
                 array::array_append(ref err_data, 'Input too long for arguments');
                 panic(err_data);
             }
-            gas::withdraw_gas_all(get_builtin_costs()).expect('Out of gas');
+            match gas::withdraw_gas_all(get_builtin_costs()) {
+                Option::Some(_) => {
+                },
+                Option::None(_) => {
+                    let mut err_data = array::array_new();
+                    array::array_append(ref err_data, 'Out of gas');
+                    panic(err_data)
+                },
+            }
             super::test_raw_output()
         }
-        #[implicit_precedence(Pedersen, RangeCheck, Bitwise, EcOp, Poseidon, SegmentArena, GasBuiltin, System)]
         fn test_raw_output_with_spaces(mut data: Span::<felt252>) -> Span::<felt252> {
             internal::revoke_ap_tracking();
-            gas::withdraw_gas().expect('Out of gas');
+            match gas::withdraw_gas() {
+                Option::Some(_) => {
+                },
+                Option::None(_) => {
+                    let mut err_data = array::array_new();
+                    array::array_append(ref err_data, 'Out of gas');
+                    panic(err_data)
+                },
+            }
             
             if !array::SpanTrait::is_empty(data) {
                 // Force the inclusion of `System` in the list of implicits.
@@ -91,7 +110,15 @@ mod TestContract {
                 array::array_append(ref err_data, 'Input too long for arguments');
                 panic(err_data);
             }
-            gas::withdraw_gas_all(get_builtin_costs()).expect('Out of gas');
+            match gas::withdraw_gas_all(get_builtin_costs()) {
+                Option::Some(_) => {
+                },
+                Option::None(_) => {
+                    let mut err_data = array::array_new();
+                    array::array_append(ref err_data, 'Out of gas');
+                    panic(err_data)
+                },
+            }
             super::test_raw_output_with_spaces()
         }
         
@@ -102,8 +129,6 @@ mod TestContract {
         use starknet::class_hash::ClassHashSerde;
         use starknet::contract_address::ContractAddressSerde;
         use starknet::storage_access::StorageAddressSerde;
-        use option::OptionTrait;
-        use option::OptionTraitImpl;
 
         
     }
@@ -113,8 +138,6 @@ mod TestContract {
         use starknet::class_hash::ClassHashSerde;
         use starknet::contract_address::ContractAddressSerde;
         use starknet::storage_access::StorageAddressSerde;
-        use option::OptionTrait;
-        use option::OptionTraitImpl;
 
         
     }

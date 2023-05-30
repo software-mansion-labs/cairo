@@ -20,12 +20,10 @@ impl SyntaxNodeFormat for SyntaxNode {
             | SyntaxKind::TokenLBrack
             | SyntaxKind::TokenSingleLineComment => true,
             SyntaxKind::TokenLParen
-                if matches!(grandparent_kind(db, self), Some(SyntaxKind::FunctionSignature)) =>
-            {
-                true
-            }
-            SyntaxKind::TokenLBrace
-                if matches!(parent_kind(db, self), Some(SyntaxKind::UsePathList)) =>
+                if matches!(
+                    grandparent_kind(db, self),
+                    Some(SyntaxKind::FunctionSignature | SyntaxKind::AttributeArgs)
+                ) =>
             {
                 true
             }
@@ -69,7 +67,6 @@ impl SyntaxNodeFormat for SyntaxNode {
                             | SyntaxKind::ExprFunctionCall
                             | SyntaxKind::PatternEnum
                             | SyntaxKind::PatternStruct
-                            | SyntaxKind::Attribute
                     )
                 ) =>
             {
@@ -195,6 +192,7 @@ impl SyntaxNodeFormat for SyntaxNode {
                 | SyntaxKind::MemberList
                 | SyntaxKind::ArgList
                 | SyntaxKind::Arg
+                | SyntaxKind::AttributeArgList
                 | SyntaxKind::GenericArgList
                 | SyntaxKind::GenericParamList
                 | SyntaxKind::ArgListParenthesized
@@ -296,20 +294,6 @@ impl SyntaxNodeFormat for SyntaxNode {
                         true,
                     )),
                 },
-                SyntaxKind::UsePathList => WrappingBreakLinePoints {
-                    leading: Some(BreakLinePointProperties::new(
-                        3,
-                        BreakLinePointIndentation::IndentedWithTail,
-                        true,
-                        false,
-                    )),
-                    trailing: Some(BreakLinePointProperties::new(
-                        3,
-                        BreakLinePointIndentation::IndentedWithTail,
-                        true,
-                        false,
-                    )),
-                },
                 SyntaxKind::MemberList => WrappingBreakLinePoints {
                     leading: Some(BreakLinePointProperties::new(
                         3,
@@ -366,7 +350,6 @@ impl SyntaxNodeFormat for SyntaxNode {
                         true,
                     )),
                 },
-
                 SyntaxKind::MatchArms => WrappingBreakLinePoints {
                     leading: Some(BreakLinePointProperties::new(
                         11,
@@ -382,17 +365,9 @@ impl SyntaxNodeFormat for SyntaxNode {
                     )),
                 },
                 SyntaxKind::TerminalComma
-                    if matches!(
+                    if !matches!(
                         parent_kind(db, self),
-                        Some(SyntaxKind::ImplicitsList)
-                            | Some(SyntaxKind::ParamList)
-                            | Some(SyntaxKind::PatternStructParamList)
-                            | Some(SyntaxKind::PatternList)
-                            | Some(SyntaxKind::StructArgList)
-                            | Some(SyntaxKind::ArgList)
-                            | Some(SyntaxKind::ExprList)
-                            | Some(SyntaxKind::GenericArgList)
-                            | Some(SyntaxKind::GenericParamList)
+                        Some(SyntaxKind::MatchArms) | Some(SyntaxKind::MemberList)
                     ) =>
                 {
                     WrappingBreakLinePoints {
@@ -405,34 +380,15 @@ impl SyntaxNodeFormat for SyntaxNode {
                         )),
                     }
                 }
-                SyntaxKind::TerminalComma
-                    if matches!(
-                        parent_kind(db, self),
-                        Some(SyntaxKind::MemberList) | Some(SyntaxKind::MatchArms)
-                    ) =>
-                {
-                    WrappingBreakLinePoints {
-                        leading: None,
-                        trailing: Some(BreakLinePointProperties::new(
-                            6,
-                            BreakLinePointIndentation::NotIndented,
-                            false,
-                            true,
-                        )),
-                    }
-                }
-                SyntaxKind::TerminalComma
-                    if matches!(parent_kind(db, self), Some(SyntaxKind::UsePathList)) =>
-                {
-                    let mut trailing = BreakLinePointProperties::new(
+                SyntaxKind::TerminalComma => WrappingBreakLinePoints {
+                    leading: None,
+                    trailing: Some(BreakLinePointProperties::new(
                         6,
                         BreakLinePointIndentation::NotIndented,
+                        false,
                         true,
-                        true,
-                    );
-                    trailing.set_single_breakpoint();
-                    WrappingBreakLinePoints { leading: None, trailing: Some(trailing) }
-                }
+                    )),
+                },
                 SyntaxKind::TerminalPlus => WrappingBreakLinePoints {
                     leading: Some(BreakLinePointProperties::new(
                         7,
@@ -491,22 +447,6 @@ impl SyntaxNodeFormat for SyntaxNode {
                 },
                 _ => WrappingBreakLinePoints { leading: None, trailing: None },
             },
-        }
-    }
-
-    fn should_skip_terminal(&self, db: &dyn SyntaxGroup) -> bool {
-        if self.kind(db) == SyntaxKind::TerminalColonColon
-            && parent_kind(db, self) == Some(SyntaxKind::PathSegmentWithGenericArgs)
-        {
-            let path_node = self.parent().unwrap().parent().unwrap();
-            matches!(
-                parent_kind(db, &path_node),
-                Some(SyntaxKind::ItemImpl)
-                    | Some(SyntaxKind::GenericParamImpl)
-                    | Some(SyntaxKind::GenericArgExpr)
-            )
-        } else {
-            false
         }
     }
 }

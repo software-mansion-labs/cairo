@@ -23,6 +23,7 @@ foo
 Parameters: v0: core::bool
 blk0 (root):
 Statements:
+  (v1: core::felt252) <- 2u
 End:
   Match(match_enum(v0) {
     bool::False(v4) => blk1,
@@ -31,7 +32,8 @@ End:
 
 blk1:
 Statements:
-  (v1: core::felt252) <- 2u
+  (v5: core::felt252) <- 4u
+  (v6: core::felt252) <- 5u
 End:
   Goto(blk3, {v1 -> v7})
 

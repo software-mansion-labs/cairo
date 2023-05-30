@@ -43,8 +43,6 @@ pub trait DefsGroup:
     #[salsa::interned]
     fn intern_type_alias(&self, id: TypeAliasLongId) -> TypeAliasId;
     #[salsa::interned]
-    fn intern_impl_alias(&self, id: ImplAliasLongId) -> ImplAliasId;
-    #[salsa::interned]
     fn intern_member(&self, id: MemberLongId) -> MemberId;
     #[salsa::interned]
     fn intern_variant(&self, id: VariantLongId) -> VariantId;
@@ -105,7 +103,7 @@ pub trait DefsGroup:
         module_id: ModuleId,
         item_id: ModuleItemId,
     ) -> Maybe<SyntaxStablePtrId>;
-    fn module_uses(&self, module_id: ModuleId) -> Maybe<OrderedHashMap<UseId, ast::UsePathLeaf>>;
+    fn module_uses(&self, module_id: ModuleId) -> Maybe<OrderedHashMap<UseId, ast::ItemUse>>;
     fn module_uses_ids(&self, module_id: ModuleId) -> Maybe<Vec<UseId>>;
     fn module_structs(
         &self,
@@ -119,11 +117,6 @@ pub trait DefsGroup:
         module_id: ModuleId,
     ) -> Maybe<OrderedHashMap<TypeAliasId, ast::ItemTypeAlias>>;
     fn module_type_aliases_ids(&self, module_id: ModuleId) -> Maybe<Vec<TypeAliasId>>;
-    fn module_impl_aliases(
-        &self,
-        module_id: ModuleId,
-    ) -> Maybe<OrderedHashMap<ImplAliasId, ast::ItemImplAlias>>;
-    fn module_impl_aliases_ids(&self, module_id: ModuleId) -> Maybe<Vec<ImplAliasId>>;
     fn module_traits(&self, module_id: ModuleId) -> Maybe<OrderedHashMap<TraitId, ast::ItemTrait>>;
     fn module_traits_ids(&self, module_id: ModuleId) -> Maybe<Vec<TraitId>>;
     fn module_impls(&self, module_id: ModuleId) -> Maybe<OrderedHashMap<ImplDefId, ast::ItemImpl>>;
@@ -247,12 +240,11 @@ pub struct ModuleData {
     items: Arc<Vec<ModuleItemId>>,
     constants: OrderedHashMap<ConstantId, ast::ItemConstant>,
     submodules: OrderedHashMap<SubmoduleId, ast::ItemModule>,
-    uses: OrderedHashMap<UseId, ast::UsePathLeaf>,
+    uses: OrderedHashMap<UseId, ast::ItemUse>,
     free_functions: OrderedHashMap<FreeFunctionId, ast::FunctionWithBody>,
     structs: OrderedHashMap<StructId, ast::ItemStruct>,
     enums: OrderedHashMap<EnumId, ast::ItemEnum>,
     type_aliases: OrderedHashMap<TypeAliasId, ast::ItemTypeAlias>,
-    impl_aliases: OrderedHashMap<ImplAliasId, ast::ItemImplAlias>,
     traits: OrderedHashMap<TraitId, ast::ItemTrait>,
     impls: OrderedHashMap<ImplDefId, ast::ItemImpl>,
     extern_types: OrderedHashMap<ExternTypeId, ast::ItemExternType>,
@@ -330,6 +322,10 @@ fn priv_module_data(db: &dyn DefsGroup, module_id: ModuleId) -> Maybe<ModuleData
                         origin: module_file_id,
                     }));
                     module_queue.push_back((new_file, db.file_syntax(new_file)?.items(syntax_db)));
+                    // New code was generated for this item. If there are more plugins that should
+                    // operate on it, they should operate on the result (the rest of the attributes
+                    // should be copied to the new generated code).
+                    break;
                 }
                 if remove_original_item {
                     break;
@@ -353,14 +349,9 @@ fn priv_module_data(db: &dyn DefsGroup, module_id: ModuleId) -> Maybe<ModuleData
                     ModuleItemId::Submodule(item_id)
                 }
                 ast::Item::Use(us) => {
-                    let path_leaves = get_all_path_leafs(db.upcast(), us.use_path(syntax_db));
-                    for path_leaf in path_leaves {
-                        let path_leaf_id =
-                            db.intern_use(UseLongId(module_file_id, path_leaf.stable_ptr()));
-                        res.uses.insert(path_leaf_id, path_leaf);
-                        items.push(ModuleItemId::Use(path_leaf_id));
-                    }
-                    continue;
+                    let item_id = db.intern_use(UseLongId(module_file_id, us.stable_ptr()));
+                    res.uses.insert(item_id, us);
+                    ModuleItemId::Use(item_id)
                 }
                 ast::Item::FreeFunction(function) => {
                     let item_id = db.intern_free_function(FreeFunctionLongId(
@@ -415,46 +406,12 @@ fn priv_module_data(db: &dyn DefsGroup, module_id: ModuleId) -> Maybe<ModuleData
                     res.type_aliases.insert(item_id, type_alias);
                     ModuleItemId::TypeAlias(item_id)
                 }
-                ast::Item::ImplAlias(impl_alias) => {
-                    let item_id = db.intern_impl_alias(ImplAliasLongId(
-                        module_file_id,
-                        impl_alias.stable_ptr(),
-                    ));
-                    res.impl_aliases.insert(item_id, impl_alias);
-                    ModuleItemId::ImplAlias(item_id)
-                }
             };
             items.push(module_item);
         }
     }
     res.items = items.into();
     Ok(res)
-}
-
-/// Returns all the path leaves under a given use path.
-pub fn get_all_path_leafs(db: &dyn SyntaxGroup, use_path: ast::UsePath) -> Vec<ast::UsePathLeaf> {
-    let mut res = vec![];
-    get_all_path_leafs_inner(db, use_path, &mut res);
-    res
-}
-
-/// Finds all the path leaves under a given use path and adds them to the given vector.
-fn get_all_path_leafs_inner(
-    db: &dyn SyntaxGroup,
-    use_path: ast::UsePath,
-    res: &mut Vec<ast::UsePathLeaf>,
-) {
-    match use_path {
-        ast::UsePath::Leaf(use_path) => {
-            res.push(use_path);
-        }
-        ast::UsePath::Single(use_path) => get_all_path_leafs_inner(db, use_path.use_path(db), res),
-        ast::UsePath::Multi(use_path) => {
-            for use_path in use_path.use_paths(db).elements(db) {
-                get_all_path_leafs_inner(db, use_path, res);
-            }
-        }
-    }
 }
 
 /// Returns all the constant definitions of the given module.
@@ -498,7 +455,7 @@ pub fn module_free_functions_ids(
 pub fn module_uses(
     db: &dyn DefsGroup,
     module_id: ModuleId,
-) -> Maybe<OrderedHashMap<UseId, ast::UsePathLeaf>> {
+) -> Maybe<OrderedHashMap<UseId, ast::ItemUse>> {
     Ok(db.priv_module_data(module_id)?.uses)
 }
 pub fn module_uses_ids(db: &dyn DefsGroup, module_id: ModuleId) -> Maybe<Vec<UseId>> {
@@ -536,17 +493,6 @@ pub fn module_type_aliases(
 }
 pub fn module_type_aliases_ids(db: &dyn DefsGroup, module_id: ModuleId) -> Maybe<Vec<TypeAliasId>> {
     Ok(db.module_type_aliases(module_id)?.keys().copied().collect())
-}
-
-/// Returns all the impl aliases of the given module.
-pub fn module_impl_aliases(
-    db: &dyn DefsGroup,
-    module_id: ModuleId,
-) -> Maybe<OrderedHashMap<ImplAliasId, ast::ItemImplAlias>> {
-    Ok(db.priv_module_data(module_id)?.impl_aliases)
-}
-pub fn module_impl_aliases_ids(db: &dyn DefsGroup, module_id: ModuleId) -> Maybe<Vec<ImplAliasId>> {
-    Ok(db.module_impl_aliases(module_id)?.keys().copied().collect())
 }
 
 /// Returns all the traits of the given module.
@@ -630,13 +576,12 @@ fn module_item_name_stable_ptr(
         ModuleItemId::Constant(id) => data.constants[id].name(db).stable_ptr().untyped(),
         ModuleItemId::Submodule(id) => data.submodules[id].name(db).stable_ptr().untyped(),
         ModuleItemId::Use(id) => {
-            let use_leaf = &data.uses[id];
-            match use_leaf.alias_clause(db) {
-                ast::OptionAliasClause::Empty(_) => use_leaf.ident(db).stable_ptr().untyped(),
-                ast::OptionAliasClause::AliasClause(alias) => {
-                    alias.alias(db).stable_ptr().untyped()
-                }
-            }
+            let use_path = data.uses[id].name(db);
+            use_path
+                .elements(db)
+                .last()
+                .map(|last| last.stable_ptr().untyped())
+                .unwrap_or_else(|| use_path.stable_ptr().untyped())
         }
         ModuleItemId::FreeFunction(id) => {
             data.free_functions[id].declaration(db).name(db).stable_ptr().untyped()
@@ -644,7 +589,6 @@ fn module_item_name_stable_ptr(
         ModuleItemId::Struct(id) => data.structs[id].name(db).stable_ptr().untyped(),
         ModuleItemId::Enum(id) => data.enums[id].name(db).stable_ptr().untyped(),
         ModuleItemId::TypeAlias(id) => data.type_aliases[id].name(db).stable_ptr().untyped(),
-        ModuleItemId::ImplAlias(id) => data.impl_aliases[id].name(db).stable_ptr().untyped(),
         ModuleItemId::Trait(id) => data.traits[id].name(db).stable_ptr().untyped(),
         ModuleItemId::Impl(id) => data.impls[id].name(db).stable_ptr().untyped(),
         ModuleItemId::ExternType(id) => data.extern_types[id].name(db).stable_ptr().untyped(),

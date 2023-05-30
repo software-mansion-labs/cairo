@@ -34,17 +34,12 @@ impl<Var: std::hash::Hash + Eq + Copy> Demand<Var> {
         &mut self,
         reporter: &mut T,
         remapping: impl Iterator<Item = (V, V)>,
-        position: T::UsePosition,
     ) {
-        for (var_index, (dst, src)) in remapping.enumerate() {
+        for (dst, src) in remapping {
             let src = src.into();
             let dst = dst.into();
             if self.vars.swap_remove(&dst) {
-                if self.vars.insert(src) {
-                    reporter.last_use(position, var_index, src);
-                } else {
-                    reporter.dup(position, src);
-                }
+                self.vars.insert(src);
             } else {
                 reporter.unused_mapped_var(dst);
             }

@@ -1,7 +1,7 @@
 //! Statement generators. Add statements to BlockBuilder while respecting variable liveness and
 //! ownership of OwnedVariable.
 
-use cairo_lang_defs::diagnostic_utils::StableLocationOption;
+use cairo_lang_defs::diagnostic_utils::StableLocation;
 use cairo_lang_semantic as semantic;
 use cairo_lang_semantic::ConcreteVariant;
 use cairo_lang_utils::extract_matches;
@@ -31,62 +31,54 @@ impl StatementsBuilder {
 /// Generator for [StatementLiteral].
 pub struct Literal {
     pub value: BigInt,
-    pub location: StableLocationOption,
+    pub location: StableLocation,
     pub ty: semantic::TypeId,
 }
 impl Literal {
-    pub fn add(
-        self,
-        ctx: &mut LoweringContext<'_, '_>,
-        builder: &mut StatementsBuilder,
-    ) -> VariableId {
+    pub fn add(self, ctx: &mut LoweringContext<'_>, scope: &mut StatementsBuilder) -> VariableId {
         let output = ctx.new_var(VarRequest { ty: self.ty, location: self.location });
-        builder.push_statement(Statement::Literal(StatementLiteral { value: self.value, output }));
+        scope.push_statement(Statement::Literal(StatementLiteral { value: self.value, output }));
         output
     }
 }
 
 /// Generator for [StatementCall].
-/// Note that builder.finalize_statement() must be called manually after ref bindings.
+/// Note that scope.finalize_statement() must be called manually after ref bindings.
 pub struct Call {
     /// Called function.
-    pub function: crate::ids::FunctionId,
+    pub function: semantic::FunctionId,
     /// Inputs to function.
     pub inputs: Vec<VariableId>,
     /// Types for `ref` parameters of the function. An output variable will be introduced for each.
-    pub extra_ret_tys: Vec<semantic::TypeId>,
+    pub ref_tys: Vec<semantic::TypeId>,
     /// Types for the returns of the function. An output variable will be introduced for each.
     pub ret_tys: Vec<semantic::TypeId>,
     /// Location associated with this statement.
-    pub location: StableLocationOption,
+    pub location: StableLocation,
 }
 impl Call {
-    /// Adds a call statement to the builder.
-    pub fn add(
-        self,
-        ctx: &mut LoweringContext<'_, '_>,
-        builder: &mut StatementsBuilder,
-    ) -> CallResult {
+    /// Adds a call statement to the scope.
+    pub fn add(self, ctx: &mut LoweringContext<'_>, scope: &mut StatementsBuilder) -> CallResult {
         let returns = self
             .ret_tys
             .into_iter()
             .map(|ty| ctx.new_var(VarRequest { ty, location: self.location }))
             .collect();
-        let extra_outputs = self
-            .extra_ret_tys
+        let ref_outputs = self
+            .ref_tys
             .into_iter()
             .map(|ty| ctx.new_var(VarRequest { ty, location: self.location }))
             .collect();
-        let outputs = chain!(&extra_outputs, &returns).copied().collect();
+        let outputs = chain!(&ref_outputs, &returns).copied().collect();
 
-        builder.push_statement(Statement::Call(StatementCall {
+        scope.push_statement(Statement::Call(StatementCall {
             function: self.function,
             inputs: self.inputs,
             outputs,
             location: self.location,
         }));
 
-        CallResult { returns, extra_outputs }
+        CallResult { returns, ref_outputs }
     }
 }
 /// Result of adding a Call statement.
@@ -94,26 +86,22 @@ pub struct CallResult {
     /// Output variables for function's return value.
     pub returns: Vec<VariableId>,
     /// Output variables for function's `ref` parameters.
-    pub extra_outputs: Vec<VariableId>,
+    pub ref_outputs: Vec<VariableId>,
 }
 
 /// Generator for [StatementEnumConstruct].
 pub struct EnumConstruct {
     pub input: VariableId,
     pub variant: ConcreteVariant,
-    pub location: StableLocationOption,
+    pub location: StableLocation,
 }
 impl EnumConstruct {
-    pub fn add(
-        self,
-        ctx: &mut LoweringContext<'_, '_>,
-        builder: &mut StatementsBuilder,
-    ) -> VariableId {
+    pub fn add(self, ctx: &mut LoweringContext<'_>, scope: &mut StatementsBuilder) -> VariableId {
         let ty = ctx.db.intern_type(semantic::TypeLongId::Concrete(
             semantic::ConcreteTypeId::Enum(self.variant.concrete_enum_id),
         ));
         let output = ctx.new_var(VarRequest { ty, location: self.location });
-        builder.push_statement(Statement::EnumConstruct(StatementEnumConstruct {
+        scope.push_statement(Statement::EnumConstruct(StatementEnumConstruct {
             variant: self.variant,
             input: self.input,
             output,
@@ -125,19 +113,19 @@ impl EnumConstruct {
 /// Generator for [StatementSnapshot].
 pub struct Snapshot {
     pub input: VariableId,
-    pub location: StableLocationOption,
+    pub location: StableLocation,
 }
 impl Snapshot {
     pub fn add(
         self,
-        ctx: &mut LoweringContext<'_, '_>,
-        builder: &mut StatementsBuilder,
+        ctx: &mut LoweringContext<'_>,
+        scope: &mut StatementsBuilder,
     ) -> (VariableId, VariableId) {
         let input_ty = ctx.variables[self.input].ty;
         let ty = ctx.db.intern_type(semantic::TypeLongId::Snapshot(input_ty));
         let output_original = ctx.new_var(VarRequest { ty: input_ty, location: self.location });
         let output_snapshot = ctx.new_var(VarRequest { ty, location: self.location });
-        builder.push_statement(Statement::Snapshot(StatementSnapshot {
+        scope.push_statement(Statement::Snapshot(StatementSnapshot {
             input: self.input,
             output_original,
             output_snapshot,
@@ -149,20 +137,16 @@ impl Snapshot {
 /// Generator for [StatementDesnap].
 pub struct Desnap {
     pub input: VariableId,
-    pub location: StableLocationOption,
+    pub location: StableLocation,
 }
 impl Desnap {
-    pub fn add(
-        self,
-        ctx: &mut LoweringContext<'_, '_>,
-        builder: &mut StatementsBuilder,
-    ) -> VariableId {
+    pub fn add(self, ctx: &mut LoweringContext<'_>, scope: &mut StatementsBuilder) -> VariableId {
         let ty = extract_matches!(
             ctx.db.lookup_intern_type(ctx.variables[self.input].ty),
             semantic::TypeLongId::Snapshot
         );
         let output = ctx.new_var(VarRequest { ty, location: self.location });
-        builder.push_statement(Statement::Desnap(StatementDesnap { input: self.input, output }));
+        scope.push_statement(Statement::Desnap(StatementDesnap { input: self.input, output }));
         output
     }
 }
@@ -177,11 +161,11 @@ pub struct StructDestructure {
 impl StructDestructure {
     pub fn add(
         self,
-        ctx: &mut LoweringContext<'_, '_>,
-        builder: &mut StatementsBuilder,
+        ctx: &mut LoweringContext<'_>,
+        scope: &mut StatementsBuilder,
     ) -> Vec<VariableId> {
         let outputs: Vec<_> = self.var_reqs.into_iter().map(|req| ctx.new_var(req)).collect();
-        builder.push_statement(Statement::StructDestructure(StatementStructDestructure {
+        scope.push_statement(Statement::StructDestructure(StatementStructDestructure {
             input: self.input,
             outputs: outputs.clone(),
         }));
@@ -194,14 +178,10 @@ pub struct StructMemberAccess {
     pub input: VariableId,
     pub member_tys: Vec<semantic::TypeId>,
     pub member_idx: usize,
-    pub location: StableLocationOption,
+    pub location: StableLocation,
 }
 impl StructMemberAccess {
-    pub fn add(
-        self,
-        ctx: &mut LoweringContext<'_, '_>,
-        builder: &mut StatementsBuilder,
-    ) -> VariableId {
+    pub fn add(self, ctx: &mut LoweringContext<'_>, scope: &mut StatementsBuilder) -> VariableId {
         StructDestructure {
             input: self.input,
             var_reqs: self
@@ -210,7 +190,7 @@ impl StructMemberAccess {
                 .map(|ty| VarRequest { ty, location: self.location })
                 .collect(),
         }
-        .add(ctx, builder)
+        .add(ctx, scope)
         .remove(self.member_idx)
     }
 }
@@ -219,16 +199,12 @@ impl StructMemberAccess {
 pub struct StructConstruct {
     pub inputs: Vec<VariableId>,
     pub ty: semantic::TypeId,
-    pub location: StableLocationOption,
+    pub location: StableLocation,
 }
 impl StructConstruct {
-    pub fn add(
-        self,
-        ctx: &mut LoweringContext<'_, '_>,
-        builder: &mut StatementsBuilder,
-    ) -> VariableId {
+    pub fn add(self, ctx: &mut LoweringContext<'_>, scope: &mut StatementsBuilder) -> VariableId {
         let output = ctx.new_var(VarRequest { ty: self.ty, location: self.location });
-        builder.push_statement(Statement::StructConstruct(StatementStructConstruct {
+        scope.push_statement(Statement::StructConstruct(StatementStructConstruct {
             inputs: self.inputs,
             output,
         }));
