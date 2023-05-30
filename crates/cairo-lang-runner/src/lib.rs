@@ -37,6 +37,7 @@ use thiserror::Error;
 mod casm_run;
 pub mod short_string;
 
+#[derive(Clone)]
 pub struct ProtostarTestConfig {
     // name, path
     pub contracts_paths: HashMap<String, String>,
