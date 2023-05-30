@@ -817,7 +817,7 @@ use blockifier::execution::contract_class::{
     ContractClass as BlockifierContractClass, ContractClassV1,
 };
 use blockifier::transaction::account_transaction::AccountTransaction;
-use blockifier::transaction::transaction_utils::declare_tx_default;
+use blockifier::transaction::transaction_utils_for_protostar::declare_tx_default;
 use blockifier::transaction::transactions::{DeclareTransaction, ExecutableTransaction};
 use cairo_lang_compiler::db::RootDatabase;
 use cairo_lang_compiler::project::{
