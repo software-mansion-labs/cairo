@@ -38,6 +38,7 @@ mod casm_run;
 pub mod short_string;
 
 pub struct ProtostarTestConfig {
+    // name, path
     pub contracts_paths: HashMap<String, String>,
 }
 
