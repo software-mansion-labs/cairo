@@ -306,18 +306,17 @@ cairo_lang_test_utils::test_file_test!(
     diagnostic,
     "src/parser_test_data",
     {
+        module_diagnostics: "module_diagnostics",
         exprs: "exprs",
         fn_: "fn",
         if_: "if",
-        illegal_string_escapes: "illegal_string_escapes",
         match_: "match",
-        module_diagnostics: "module_diagnostics",
         pattern: "pattern",
-        question_mark: "question_mark",
-        reserved_identifier: "reserved_identifier",
-        semicolon: "semicolon",
-        underscore_not_supported: "underscore_not_supported",
         unterminated_string: "unterminated_string",
+        question_mark: "question_mark",
+        semicolon: "semicolon",
+        reserved_identifier: "reserved_identifier",
+        underscore_not_supported: "underscore_not_supported",
     },
     get_diagnostics
 );
@@ -328,7 +327,6 @@ cairo_lang_test_utils::test_file_test!(
     {
         constant: "constant",
         enum_: "enum",
-        loop_: "loop",
         item_free_function: "item_free_function",
         function_signature: "function_signature",
         function_call: "function_call",
@@ -336,13 +334,10 @@ cairo_lang_test_utils::test_file_test!(
         item_trait: "item_trait",
         let_statement: "let_statement",
         if_else: "if_else",
-        impl_alias: "impl_alias",
         literal: "literal",
         module: "module",
         op_eq: "op_eq",
         array: "array",
-        attrs: "attrs",
-        inline_macro: "inline_macro",
     },
     test_partial_parser_tree
 );

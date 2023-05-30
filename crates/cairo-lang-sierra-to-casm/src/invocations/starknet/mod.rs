@@ -1,7 +1,6 @@
-use cairo_felt::Felt252;
+use cairo_felt::Felt as Felt252;
 use cairo_lang_casm::builder::CasmBuilder;
 use cairo_lang_casm::casm_build_extend;
-use cairo_lang_casm::hints::StarknetHint;
 use cairo_lang_sierra::extensions::consts::SignatureAndConstConcreteLibfunc;
 use cairo_lang_sierra::extensions::starknet::StarkNetConcreteLibfunc;
 use cairo_lang_sierra_gas::core_libfunc_cost::SYSTEM_CALL_COST;
@@ -22,7 +21,6 @@ use crate::invocations::{
 
 mod testing;
 
-mod secp256k1;
 mod storage;
 
 /// Builds instructions for Sierra starknet operations.
@@ -69,7 +67,6 @@ pub fn build(
         StarkNetConcreteLibfunc::Deploy(_) => {
             build_syscalls(builder, "Deploy", [1, 1, 2, 1], [1, 2])
         }
-        StarkNetConcreteLibfunc::Keccak(_) => build_syscalls(builder, "Keccak", [2], [2]),
         StarkNetConcreteLibfunc::LibraryCall(_) => {
             build_syscalls(builder, "LibraryCall", [1, 1, 2], [2])
         }
@@ -80,7 +77,6 @@ pub fn build(
             build_syscalls(builder, "SendMessageToL1", [1, 2], [])
         }
         StarkNetConcreteLibfunc::Testing(libfunc) => testing::build(libfunc, builder),
-        StarkNetConcreteLibfunc::Secp256K1(libfunc) => secp256k1::build(libfunc, builder),
     }
 }
 
@@ -96,7 +92,8 @@ pub fn build_u251_const(
     build_single_cell_const(builder, libfunc.c.clone())
 }
 
-/// builds a libfunc that tries to convert a felt252 to type with values in the range[0, 2**251).
+/// builts a libfunct that tries to convert a felt252 to type with values in the range[0,
+/// 2**251).
 pub fn build_u251_try_from_felt252(
     builder: CompiledInvocationBuilder<'_>,
 ) -> Result<CompiledInvocation, InvocationError> {
@@ -119,7 +116,7 @@ pub fn build_u251_try_from_felt252(
     }
     validate_under_limit::<1>(
         &mut casm_builder,
-        &(Felt252::prime().to_bigint().unwrap() - addr_bound.clone()),
+        &(-Felt252::from(addr_bound.clone())).to_biguint().to_bigint().unwrap(),
         shifted_value,
         range_check,
         &auxiliary_vars,
@@ -188,7 +185,7 @@ pub fn build_syscalls<const INPUT_COUNT: usize, const OUTPUT_COUNT: usize>(
         }
     }
     casm_build_extend! {casm_builder,
-        hint StarknetHint::SystemCall { system: original_system };
+        hint SystemCall { system: original_system };
         let updated_gas_builtin = *(system++);
         tempvar failure_flag = *(system++);
     };

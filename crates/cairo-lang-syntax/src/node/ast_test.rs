@@ -1,5 +1,6 @@
 use cairo_lang_filesystem::span::{TextOffset, TextWidth};
 use pretty_assertions::assert_eq;
+use smol_str::SmolStr;
 use test_log::test;
 
 use super::ast::{
@@ -8,8 +9,19 @@ use super::ast::{
     TokenWhitespace, Trivia,
 };
 use super::kind::SyntaxKind;
-use super::{SyntaxNode, Terminal, Token};
+use super::{SyntaxGroup, SyntaxNode, Terminal, Token};
 use crate::node::test_utils::DatabaseForTesting;
+
+fn traverse(
+    db: &dyn SyntaxGroup,
+    node: SyntaxNode,
+) -> Vec<(SyntaxKind, Option<SmolStr>, TextOffset, TextWidth)> {
+    let mut res = vec![(node.kind(db), node.text(db), node.offset(), node.width(db))];
+    for child in node.children(db) {
+        res.append(&mut traverse(db, child));
+    }
+    res
+}
 
 #[test]
 fn test_ast() {
@@ -18,10 +30,8 @@ fn test_ast() {
     let root = setup(db);
 
     assert_eq!(
-        root.descendants(db)
-            .map(|node| (node.kind(db), node.text(db), node.offset(), node.width(db)))
-            .collect::<Vec<_>>(),
-        vec![
+        traverse(db, root),
+        [
             (
                 SyntaxKind::ExprBinary,
                 None,
@@ -133,10 +143,14 @@ fn test_stable_ptr() {
     let db_val = DatabaseForTesting::default();
     let db = &db_val;
     let root = setup(db);
-    for node in root.descendants(db) {
-        let ptr = node.stable_ptr();
-        let looked_up_node = root.lookup_ptr(db, ptr);
-        assert_eq!(node, looked_up_node);
+    traverse_and_verify_ptr(db, &root, root.clone());
+}
+fn traverse_and_verify_ptr(db: &dyn SyntaxGroup, root: &SyntaxNode, node: SyntaxNode) {
+    let ptr = node.stable_ptr();
+    let looked_up_node = root.lookup_ptr(db, ptr);
+    assert_eq!(node, looked_up_node);
+    for c in node.children(db) {
+        traverse_and_verify_ptr(db, root, c);
     }
 }
 

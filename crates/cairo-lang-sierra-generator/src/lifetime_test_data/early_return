@@ -35,10 +35,15 @@ End:
 blk2:
 Statements:
 End:
+  Goto(blk3, {})
+
+blk3:
+Statements:
+End:
   Return(v0)
 
 //! > last_use
-v0: ((BlockId(2), 0), 0)
+v0: ((BlockId(3), 0), 0)
 v1: ((BlockId(1), 1), 0)
 
 //! > drops

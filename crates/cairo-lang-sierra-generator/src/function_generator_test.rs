@@ -8,7 +8,6 @@ cairo_lang_test_utils::test_file_test!(
         struct_: "struct",
         match_: "match",
         simple: "simple",
-        snapshot: "snapshot",
         literals: "literals",
 
     },

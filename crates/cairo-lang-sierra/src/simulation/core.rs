@@ -22,18 +22,16 @@ use crate::extensions::felt252::{
 };
 use crate::extensions::felt252_dict::Felt252DictConcreteLibfunc;
 use crate::extensions::function_call::FunctionCallConcreteLibfunc;
-use crate::extensions::gas::GasConcreteLibfunc::{
-    BuiltinWithdrawGas, GetAvailableGas, GetBuiltinCosts, RedepositGas, WithdrawGas,
-};
-use crate::extensions::int::unsigned::{
-    Uint16Concrete, Uint32Concrete, Uint64Concrete, Uint8Concrete, UintConstConcreteLibfunc,
-};
-use crate::extensions::int::unsigned128::Uint128Concrete;
-use crate::extensions::int::IntOperator;
+use crate::extensions::gas::GasConcreteLibfunc::{GetAvailableGas, RedepositGas, WithdrawGas};
 use crate::extensions::mem::MemConcreteLibfunc::{
     AllocLocal, FinalizeLocals, Rename, StoreLocal, StoreTemp,
 };
 use crate::extensions::structure::StructConcreteLibfunc;
+use crate::extensions::uint::{
+    IntOperator, Uint16Concrete, Uint32Concrete, Uint64Concrete, Uint8Concrete,
+    UintConstConcreteLibfunc,
+};
+use crate::extensions::uint128::Uint128Concrete;
 use crate::ids::FunctionId;
 
 // TODO(orizi): This def is duplicated.
@@ -141,9 +139,6 @@ pub fn simulate<
                 0,
             ))
         }
-        Gas(BuiltinWithdrawGas(_) | GetBuiltinCosts(_)) => {
-            unimplemented!("Simulation of the builtin cost functionality is not implemented yet.")
-        }
         BranchAlign(_) => {
             get_statement_gas_info().ok_or(LibfuncSimulationError::UnresolvedStatementGasInfo)?;
             Ok((vec![], 0))
@@ -193,28 +188,6 @@ pub fn simulate<
             [_, _, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
             _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
         },
-        Array(ArrayConcreteLibfunc::Slice(_)) => match &inputs[..] {
-            [
-                CoreValue::RangeCheck,
-                CoreValue::Array(_),
-                CoreValue::Uint32(_),
-                CoreValue::Uint32(_),
-            ] => {
-                let mut iter = inputs.into_iter();
-                iter.next(); // Ignore range check.
-                let arr = extract_matches!(iter.next().unwrap(), CoreValue::Array);
-                let start = extract_matches!(iter.next().unwrap(), CoreValue::Uint32) as usize;
-                let length = extract_matches!(iter.next().unwrap(), CoreValue::Uint32) as usize;
-                match arr.get(start..(start + length)) {
-                    Some(elements) => {
-                        Ok((vec![CoreValue::RangeCheck, CoreValue::Array(elements.to_vec())], 0))
-                    }
-                    None => Ok((vec![CoreValue::RangeCheck], 1)),
-                }
-            }
-            [_, _, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
-            _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
-        },
         Array(ArrayConcreteLibfunc::Len(_)) => match &inputs[..] {
             [CoreValue::Array(_)] => {
                 let arr = extract_matches!(inputs.into_iter().next().unwrap(), CoreValue::Array);
@@ -225,7 +198,6 @@ pub fn simulate<
             _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
         },
         Array(ArrayConcreteLibfunc::SnapshotPopFront(_)) => todo!(),
-        Array(ArrayConcreteLibfunc::SnapshotPopBack(_)) => todo!(),
         Uint8(libfunc) => simulate_u8_libfunc(libfunc, &inputs),
         Uint16(libfunc) => simulate_u16_libfunc(libfunc, &inputs),
         Uint32(libfunc) => simulate_u32_libfunc(libfunc, &inputs),
@@ -298,6 +270,30 @@ pub fn simulate<
                 Err(LibfuncSimulationError::WrongNumberOfArgs)
             }
         }
+        CoreConcreteLibfunc::Felt252Dict(Felt252DictConcreteLibfunc::Read(_)) => {
+            match &inputs[..] {
+                [CoreValue::Dict(map), CoreValue::Felt252(key)] => {
+                    // Returns 0 as a default value.
+                    // TODO(Gil): correct this behavior when dict behavior is decided on key not
+                    // found.
+                    Ok((vec![map.get(key).map_or(CoreValue::Felt252(0.into()), |x| x.clone())], 0))
+                }
+                [_, _] => Err(LibfuncSimulationError::WrongArgType),
+                _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
+            }
+        }
+        CoreConcreteLibfunc::Felt252Dict(Felt252DictConcreteLibfunc::Write(_)) => match &inputs[..]
+        {
+            [CoreValue::Dict(_), CoreValue::Felt252(_), _] => {
+                let mut iter = inputs.into_iter();
+                let mut dict = extract_matches!(iter.next().unwrap(), CoreValue::Dict);
+                let key = extract_matches!(iter.next().unwrap(), CoreValue::Felt252);
+                dict.insert(key, iter.next().unwrap());
+                Ok((vec![CoreValue::Dict(dict)], 0))
+            }
+            [_, _, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
+            _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
+        },
         CoreConcreteLibfunc::Felt252Dict(Felt252DictConcreteLibfunc::Squash(_)) => {
             match &inputs[..] {
                 [CoreValue::RangeCheck, CoreValue::Dict(_)] => {
@@ -314,8 +310,8 @@ pub fn simulate<
         CoreConcreteLibfunc::Pedersen(_) => {
             unimplemented!("Simulation of the Pedersen hash function is not implemented yet.");
         }
-        CoreConcreteLibfunc::Poseidon(_) => {
-            unimplemented!("Simulation of the Poseidon hash function is not implemented yet.");
+        CoreConcreteLibfunc::BuiltinCost(_) => {
+            unimplemented!("Simulation of the builtin cost functionality is not implemented yet.")
         }
         CoreConcreteLibfunc::StarkNet(_) => {
             unimplemented!("Simulation of the StarkNet functionalities is not implemented yet.")
@@ -353,8 +349,6 @@ pub fn simulate<
             _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
         },
         CoreConcreteLibfunc::Cast(_) => unimplemented!(),
-        CoreConcreteLibfunc::Felt252DictEntry(_) => unimplemented!(),
-        CoreConcreteLibfunc::Uint256(_) => unimplemented!(),
     }
 }
 
@@ -419,14 +413,6 @@ fn simulate_bool_libfunc(
                 ))
             }
             [_, _] => Err(LibfuncSimulationError::WrongArgType),
-            _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
-        },
-        BoolConcreteLibfunc::Equal(_) => match inputs {
-            [CoreValue::Enum { index: a_index, .. }, CoreValue::Enum { index: b_index, .. }] => {
-                // The variant index defines the true/false "value". Index zero is false.
-                Ok((vec![], usize::from(*a_index == *b_index)))
-            }
-            [_, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
             _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
         },
         BoolConcreteLibfunc::ToFelt252(_) => match inputs {
@@ -497,9 +483,24 @@ fn simulate_u128_libfunc(
             [_, _, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
             _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
         },
-        Uint128Concrete::GuaranteeMul(_) | Uint128Concrete::MulGuaranteeVerify(_) => {
-            unimplemented!()
-        }
+        Uint128Concrete::WideMul(_) => match inputs {
+            [CoreValue::RangeCheck, CoreValue::Uint128(lhs), CoreValue::Uint128(rhs)] => {
+                let result = BigInt::from(*lhs) * BigInt::from(*rhs);
+                let u128_limit = BigInt::from(u128::MAX) + BigInt::from(1);
+                Ok((
+                    vec![
+                        CoreValue::RangeCheck,
+                        CoreValue::Uint128(
+                            (result.clone() / u128_limit.clone()).to_u128().unwrap(),
+                        ),
+                        CoreValue::Uint128((result % u128_limit).to_u128().unwrap()),
+                    ],
+                    0,
+                ))
+            }
+            [_, _, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
+            _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
+        },
         Uint128Concrete::IsZero(_) => {
             match inputs {
                 [CoreValue::Uint128(value)] if *value == 0 => {
@@ -515,6 +516,15 @@ fn simulate_u128_libfunc(
                 _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
             }
         }
+        Uint128Concrete::LessThan(_) => match inputs {
+            [CoreValue::RangeCheck, CoreValue::Uint128(a), CoreValue::Uint128(b)] => {
+                // "False" branch (branch 0) is the case a >= b.
+                // "True" branch (branch 1) is the case a < b.
+                Ok((vec![CoreValue::RangeCheck], usize::from(a < b)))
+            }
+            [_, _, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
+            _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
+        },
         Uint128Concrete::SquareRoot(_) => match inputs {
             [CoreValue::RangeCheck, CoreValue::Uint128(value)] => {
                 let root = BigInt::from(*value).sqrt();
@@ -530,6 +540,15 @@ fn simulate_u128_libfunc(
                 Ok((vec![], usize::from(a == b)))
             }
             [_, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
+            _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
+        },
+        Uint128Concrete::LessThanOrEqual(_) => match inputs {
+            [CoreValue::RangeCheck, CoreValue::Uint128(a), CoreValue::Uint128(b)] => {
+                // "False" branch (branch 0) is the case a > b.
+                // "True" branch (branch 1) is the case a <= b.
+                Ok((vec![CoreValue::RangeCheck], usize::from(a <= b)))
+            }
+            [_, _, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
             _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
         },
     }
@@ -559,6 +578,15 @@ fn simulate_u8_libfunc(
             [_, _, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
             _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
         },
+        Uint8Concrete::LessThan(_) => match inputs {
+            [CoreValue::RangeCheck, CoreValue::Uint8(a), CoreValue::Uint8(b)] => {
+                // "False" branch (branch 0) is the case a >= b.
+                // "True" branch (branch 1) is the case a < b.
+                Ok((vec![CoreValue::RangeCheck], usize::from(a < b)))
+            }
+            [_, _, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
+            _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
+        },
         Uint8Concrete::SquareRoot(_) => match inputs {
             [CoreValue::RangeCheck, CoreValue::Uint8(value)] => {
                 let root = BigInt::from(*value).sqrt();
@@ -574,6 +602,15 @@ fn simulate_u8_libfunc(
                 Ok((vec![], usize::from(a == b)))
             }
             [_, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
+            _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
+        },
+        Uint8Concrete::LessThanOrEqual(_) => match inputs {
+            [CoreValue::RangeCheck, CoreValue::Uint8(a), CoreValue::Uint8(b)] => {
+                // "False" branch (branch 0) is the case a > b.
+                // "True" branch (branch 1) is the case a <= b.
+                Ok((vec![CoreValue::RangeCheck], usize::from(a <= b)))
+            }
+            [_, _, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
             _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
         },
         Uint8Concrete::ToFelt252(_) => match inputs {
@@ -627,6 +664,15 @@ fn simulate_u16_libfunc(
             [_, _, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
             _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
         },
+        Uint16Concrete::LessThan(_) => match inputs {
+            [CoreValue::RangeCheck, CoreValue::Uint16(a), CoreValue::Uint16(b)] => {
+                // "False" branch (branch 0) is the case a >= b.
+                // "True" branch (branch 1) is the case a < b.
+                Ok((vec![CoreValue::RangeCheck], usize::from(a < b)))
+            }
+            [_, _, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
+            _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
+        },
         Uint16Concrete::SquareRoot(_) => match inputs {
             [CoreValue::RangeCheck, CoreValue::Uint16(value)] => {
                 let root = BigInt::from(*value).sqrt();
@@ -642,6 +688,15 @@ fn simulate_u16_libfunc(
                 Ok((vec![], usize::from(a == b)))
             }
             [_, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
+            _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
+        },
+        Uint16Concrete::LessThanOrEqual(_) => match inputs {
+            [CoreValue::RangeCheck, CoreValue::Uint16(a), CoreValue::Uint16(b)] => {
+                // "False" branch (branch 0) is the case a > b.
+                // "True" branch (branch 1) is the case a <= b.
+                Ok((vec![CoreValue::RangeCheck], usize::from(a <= b)))
+            }
+            [_, _, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
             _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
         },
         Uint16Concrete::ToFelt252(_) => match inputs {
@@ -695,6 +750,15 @@ fn simulate_u32_libfunc(
             [_, _, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
             _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
         },
+        Uint32Concrete::LessThan(_) => match inputs {
+            [CoreValue::RangeCheck, CoreValue::Uint32(a), CoreValue::Uint32(b)] => {
+                // "False" branch (branch 0) is the case a >= b.
+                // "True" branch (branch 1) is the case a < b.
+                Ok((vec![CoreValue::RangeCheck], usize::from(a < b)))
+            }
+            [_, _, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
+            _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
+        },
         Uint32Concrete::SquareRoot(_) => match inputs {
             [CoreValue::RangeCheck, CoreValue::Uint32(value)] => {
                 let root = BigInt::from(*value).sqrt();
@@ -710,6 +774,15 @@ fn simulate_u32_libfunc(
                 Ok((vec![], usize::from(a == b)))
             }
             [_, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
+            _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
+        },
+        Uint32Concrete::LessThanOrEqual(_) => match inputs {
+            [CoreValue::RangeCheck, CoreValue::Uint32(a), CoreValue::Uint32(b)] => {
+                // "False" branch (branch 0) is the case a > b.
+                // "True" branch (branch 1) is the case a <= b.
+                Ok((vec![CoreValue::RangeCheck], usize::from(a <= b)))
+            }
+            [_, _, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
             _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
         },
         Uint32Concrete::ToFelt252(_) => match inputs {
@@ -763,6 +836,15 @@ fn simulate_u64_libfunc(
             [_, _, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
             _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
         },
+        Uint64Concrete::LessThan(_) => match inputs {
+            [CoreValue::RangeCheck, CoreValue::Uint64(a), CoreValue::Uint64(b)] => {
+                // "False" branch (branch 0) is the case a >= b.
+                // "True" branch (branch 1) is the case a < b.
+                Ok((vec![CoreValue::RangeCheck], usize::from(a < b)))
+            }
+            [_, _, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
+            _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
+        },
         Uint64Concrete::SquareRoot(_) => match inputs {
             [CoreValue::RangeCheck, CoreValue::Uint64(value)] => {
                 let root = BigInt::from(*value).sqrt();
@@ -778,6 +860,15 @@ fn simulate_u64_libfunc(
                 Ok((vec![], usize::from(a == b)))
             }
             [_, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
+            _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
+        },
+        Uint64Concrete::LessThanOrEqual(_) => match inputs {
+            [CoreValue::RangeCheck, CoreValue::Uint64(a), CoreValue::Uint64(b)] => {
+                // "False" branch (branch 0) is the case a > b.
+                // "True" branch (branch 1) is the case a <= b.
+                Ok((vec![CoreValue::RangeCheck], usize::from(a <= b)))
+            }
+            [_, _, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
             _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
         },
         Uint64Concrete::ToFelt252(_) => match inputs {
@@ -820,7 +911,7 @@ fn simulate_felt252_libfunc(
                 Err(LibfuncSimulationError::WrongNumberOfArgs)
             }
         }
-        Felt252Concrete::BinaryOperation(Felt252BinaryOperationConcrete::WithVar(
+        Felt252Concrete::BinaryOperation(Felt252BinaryOperationConcrete::Binary(
             Felt252BinaryOpConcreteLibfunc { operator, .. },
         )) => match (inputs, operator) {
             (
@@ -850,7 +941,7 @@ fn simulate_felt252_libfunc(
             ([_, _], _) => Err(LibfuncSimulationError::MemoryLayoutMismatch),
             _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
         },
-        Felt252Concrete::BinaryOperation(Felt252BinaryOperationConcrete::WithConst(
+        Felt252Concrete::BinaryOperation(Felt252BinaryOperationConcrete::Const(
             Felt252OperationWithConstConcreteLibfunc { operator, c, .. },
         )) => match inputs {
             [CoreValue::Felt252(value)] => Ok((

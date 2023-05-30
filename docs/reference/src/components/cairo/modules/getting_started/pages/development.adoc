@@ -1,5 +1,0 @@
-# Development
-
-## Install the language server
-
-Follow the instructions in link:https://github.com/starkware-libs/cairo/blob/main/vscode-cairo/README.md[vscode-cairo].

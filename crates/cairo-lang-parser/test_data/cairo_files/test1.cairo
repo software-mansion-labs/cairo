@@ -36,7 +36,6 @@ extern fn glee<A, b>(var1: int,) -> crate::S<int> nopanic;
 
 struct A<A, B> {
     member: bool,
-    #[annot(a)]
     member2: (bool, felt252, ())
 }
 

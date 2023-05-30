@@ -1,7 +1,7 @@
 use indoc::indoc;
 use test_log::test;
 
-use crate::hints::CoreHint;
+use crate::hints::Hint;
 use crate::instructions::{
     AddApInstruction, AssertEqInstruction, CallInstruction, Instruction, InstructionBody,
     JnzInstruction, JumpInstruction, RetInstruction,
@@ -88,7 +88,7 @@ fn test_instruction_with_hint() {
             relative: false,
         }),
         inc_ap: false,
-        hints: vec![CoreHint::AllocSegment { dst }.into()],
+        hints: vec![Hint::AllocSegment { dst }],
     };
 
     assert_eq!(

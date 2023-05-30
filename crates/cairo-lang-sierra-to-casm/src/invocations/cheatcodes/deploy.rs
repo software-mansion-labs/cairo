@@ -44,7 +44,7 @@ pub fn build_deploy(
         tempvar deployed_contract_address;
         tempvar panic_data_start;
         tempvar panic_data_end;
-        hint ProtostarHint::Deploy {
+        hint Deploy {
             prepared_contract_address: prepared_contract_address,
             prepared_class_hash: prepared_class_hash,
             prepared_constructor_calldata_start: prepared_constructor_calldata_start,

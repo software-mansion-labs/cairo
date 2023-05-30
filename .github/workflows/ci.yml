@@ -16,9 +16,6 @@ jobs:
         with:
           components: rustfmt
           toolchain: nightly-2022-11-03
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: |
@@ -44,7 +41,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly-2022-11-03
       - uses: Swatinem/rust-cache@v2
       - run: scripts/cairo_fmt.sh --check
 
@@ -56,7 +53,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: nightly-2022-11-03
       - uses: Swatinem/rust-cache@v2
       - run: scripts/cairo_test.sh
       - run: scripts/starknet_test.sh

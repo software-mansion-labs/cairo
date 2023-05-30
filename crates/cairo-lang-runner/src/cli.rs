@@ -7,15 +7,9 @@ use cairo_lang_compiler::db::RootDatabase;
 use cairo_lang_compiler::diagnostics::DiagnosticsReporter;
 use cairo_lang_compiler::project::setup_project;
 use cairo_lang_diagnostics::ToOption;
-use cairo_lang_runner::short_string::as_cairo_short_string;
-use cairo_lang_runner::{SierraCasmRunner, StarknetState};
-use cairo_lang_sierra::extensions::gas::{
-    BuiltinCostWithdrawGasLibfunc, RedepositGasLibfunc, WithdrawGasLibfunc,
-};
-use cairo_lang_sierra::extensions::NamedLibfunc;
+use cairo_lang_runner::SierraCasmRunner;
 use cairo_lang_sierra_generator::db::SierraGenGroup;
-use cairo_lang_sierra_generator::replace_ids::{DebugReplacer, SierraIdReplacer};
-use cairo_lang_starknet::contract::get_contracts_info;
+use cairo_lang_sierra_generator::replace_ids::replace_sierra_ids_in_program;
 use clap::Parser;
 
 /// Command line args parser.
@@ -24,6 +18,7 @@ use clap::Parser;
 #[clap(version, verbatim_doc_comment)]
 struct Args {
     /// The file to compile and run.
+    #[arg(short, long)]
     path: String,
     /// In cases where gas is available, the amount of provided gas.
     #[arg(long)]
@@ -45,52 +40,23 @@ fn main() -> anyhow::Result<()> {
     }
 
     let sierra_program = db
-        .get_sierra_program(main_crate_ids.clone())
+        .get_sierra_program(main_crate_ids)
         .to_option()
         .with_context(|| "Compilation failed without any diagnostics.")?;
-    let replacer = DebugReplacer { db };
-    if args.available_gas.is_none()
-        && sierra_program.type_declarations.iter().any(|decl| {
-            matches!(
-                decl.long_id.generic_id.0.as_str(),
-                WithdrawGasLibfunc::STR_ID
-                    | BuiltinCostWithdrawGasLibfunc::STR_ID
-                    | RedepositGasLibfunc::STR_ID
-            )
-        })
-    {
-        anyhow::bail!("Program requires gas counter, please provide `--available_gas` argument.");
-    }
-
-    let contracts_info = get_contracts_info(db, main_crate_ids, &replacer)?;
-
     let runner = SierraCasmRunner::new(
-        replacer.apply(&sierra_program),
-        if args.available_gas.is_some() { Some(Default::default()) } else { None },
-        contracts_info,
+        replace_sierra_ids_in_program(db, &sierra_program),
+        args.available_gas.is_some(),
     )
     .with_context(|| "Failed setting up runner.")?;
     let result = runner
-        .run_function(
-            runner.find_function("::main")?,
-            &[],
-            args.available_gas,
-            StarknetState::default(),
-        )
+        .run_function("::main", &[], args.available_gas)
         .with_context(|| "Failed to run the function.")?;
     match result.value {
         cairo_lang_runner::RunResultValue::Success(values) => {
             println!("Run completed successfully, returning {values:?}")
         }
         cairo_lang_runner::RunResultValue::Panic(values) => {
-            print!("Run panicked with [");
-            for value in &values {
-                match as_cairo_short_string(value) {
-                    Some(as_string) => print!("{value} ('{as_string}'), "),
-                    None => print!("{value}, "),
-                }
-            }
-            println!("].")
+            println!("Run panicked with err values: {values:?}")
         }
     }
     if let Some(gas) = result.gas_counter {

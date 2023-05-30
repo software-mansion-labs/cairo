@@ -38,7 +38,7 @@ pub fn build_mock_call(
 
     casm_build_extend! {casm_builder,
         tempvar err_code;
-        hint ProtostarHint::MockCall {
+        hint MockCall {
             contract_address: contract_address,
             function_name: function_name,
             response_start: response_start,

@@ -1,7 +1,6 @@
 use itertools::chain;
 
 use super::interoperability::ClassHashType;
-use super::u64_span_ty;
 use crate::extensions::array::ArrayType;
 use crate::extensions::felt252::Felt252Type;
 use crate::extensions::gas::GasBuiltinType;
@@ -9,7 +8,6 @@ use crate::extensions::lib_func::{
     BranchSignature, DeferredOutputKind, LibfuncSignature, OutputVarInfo, ParamSignature,
     SierraApChange, SignatureSpecializationContext,
 };
-use crate::extensions::modules::get_u256_type;
 use crate::extensions::{
     NamedType, NoGenericArgsGenericLibfunc, NoGenericArgsGenericType, OutputVarReferenceInfo,
     SpecializationError,
@@ -60,7 +58,12 @@ impl<T: SyscallGenericLibfunc> NoGenericArgsGenericLibfunc for T {
                     // Gas builtin
                     ParamSignature::new(gas_builtin_ty.clone()),
                     // System
-                    ParamSignature::new(system_ty.clone()).with_allow_add_const(),
+                    ParamSignature {
+                        ty: system_ty.clone(),
+                        allow_deferred: false,
+                        allow_add_const: true,
+                        allow_const: false,
+                    }
                 ],
                 T::input_tys(context)?.into_iter().map(ParamSignature::new)
             )
@@ -142,29 +145,5 @@ impl SyscallGenericLibfunc for ReplaceClassLibfunc {
         _context: &dyn SignatureSpecializationContext,
     ) -> Result<Vec<crate::ids::ConcreteTypeId>, SpecializationError> {
         Ok(vec![])
-    }
-}
-
-/// Libfunc for the keccak system call.
-/// The libfunc does not add any padding and the input needs to be a multiple of 1088 bits
-/// (== 17 u64 word).
-#[derive(Default)]
-pub struct KeccakLibfunc {}
-impl SyscallGenericLibfunc for KeccakLibfunc {
-    const STR_ID: &'static str = "keccak_syscall";
-
-    fn input_tys(
-        context: &dyn SignatureSpecializationContext,
-    ) -> Result<Vec<crate::ids::ConcreteTypeId>, SpecializationError> {
-        Ok(vec![
-            // input
-            u64_span_ty(context)?,
-        ])
-    }
-
-    fn success_output_tys(
-        context: &dyn SignatureSpecializationContext,
-    ) -> Result<Vec<crate::ids::ConcreteTypeId>, SpecializationError> {
-        Ok(vec![get_u256_type(context)?])
     }
 }

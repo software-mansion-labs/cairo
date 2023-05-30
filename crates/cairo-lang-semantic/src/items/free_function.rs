@@ -1,11 +1,12 @@
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use cairo_lang_defs::ids::{FreeFunctionId, FunctionTitleId, LanguageElementId};
 use cairo_lang_diagnostics::{Diagnostics, Maybe, ToMaybe};
-use cairo_lang_syntax::attribute::structured::AttributeListStructurize;
-use cairo_lang_syntax::node::TypedSyntaxNode;
+use cairo_lang_utils::try_extract_matches;
 use cairo_lang_utils::unordered_hash_map::UnorderedHashMap;
 
+use super::attribute::ast_attributes_to_semantic;
 use super::function_with_body::{get_inline_config, FunctionBody, FunctionBodyData};
 use super::functions::{
     forbid_inline_always_with_impl_generic_param, FunctionDeclarationData, InlineConfiguration,
@@ -14,11 +15,8 @@ use super::generics::semantic_generic_params;
 use crate::db::SemanticGroup;
 use crate::diagnostic::SemanticDiagnostics;
 use crate::expr::compute::{compute_root_expr, ComputationContext, Environment};
-use crate::items::function_with_body::get_implicit_precedence;
-use crate::items::functions::ImplicitPrecedence;
-use crate::resolve::{Resolver, ResolverData};
-use crate::substitution::SemanticRewriter;
-use crate::{semantic, SemanticDiagnostic, TypeId};
+use crate::resolve_path::{ResolvedLookback, Resolver};
+use crate::{semantic, Expr, FunctionId, SemanticDiagnostic, TypeId};
 
 #[cfg(test)]
 #[path = "free_function_test.rs"]
@@ -54,14 +52,6 @@ pub fn free_function_declaration_implicits(
     Ok(db.priv_free_function_declaration_data(free_function_id)?.signature.implicits)
 }
 
-/// Query implementation of [SemanticGroup::free_function_declaration_implicit_precedence]
-pub fn free_function_declaration_implicit_precedence(
-    db: &dyn SemanticGroup,
-    free_function_id: FreeFunctionId,
-) -> Maybe<ImplicitPrecedence> {
-    Ok(db.priv_free_function_declaration_data(free_function_id)?.implicit_precedence)
-}
-
 /// Query implementation of [crate::db::SemanticGroup::free_function_generic_params].
 pub fn free_function_generic_params(
     db: &dyn SemanticGroup,
@@ -70,12 +60,12 @@ pub fn free_function_generic_params(
     Ok(db.priv_free_function_declaration_data(free_function_id)?.generic_params)
 }
 
-/// Query implementation of [crate::db::SemanticGroup::free_function_declaration_resolver_data].
-pub fn free_function_declaration_resolver_data(
+/// Query implementation of [crate::db::SemanticGroup::free_function_declaration_resolved_lookback].
+pub fn free_function_declaration_resolved_lookback(
     db: &dyn SemanticGroup,
     free_function_id: FreeFunctionId,
-) -> Maybe<Arc<ResolverData>> {
-    Ok(db.priv_free_function_declaration_data(free_function_id)?.resolver_data)
+) -> Maybe<Arc<ResolvedLookback>> {
+    Ok(db.priv_free_function_declaration_data(free_function_id)?.resolved_lookback)
 }
 
 /// Query implementation of [crate::db::SemanticGroup::free_function_declaration_inline_config].
@@ -101,14 +91,13 @@ pub fn priv_free_function_declaration_data(
     let declaration = function_syntax.declaration(syntax_db);
 
     // Generic params.
-    let mut resolver = Resolver::new(db, module_file_id);
+    let mut resolver = Resolver::new_with_inference(db, module_file_id);
     let generic_params = semantic_generic_params(
         db,
         &mut diagnostics,
         &mut resolver,
         module_file_id,
         &declaration.generic_params(syntax_db),
-        false,
     )?;
 
     let mut environment = Environment::default();
@@ -123,26 +112,11 @@ pub fn priv_free_function_declaration_data(
         &mut environment,
     );
 
-    let attributes = function_syntax.attributes(syntax_db).structurize(syntax_db);
+    let attributes = ast_attributes_to_semantic(syntax_db, function_syntax.attributes(syntax_db));
 
     let inline_config = get_inline_config(db, &mut diagnostics, &attributes)?;
 
     forbid_inline_always_with_impl_generic_param(&mut diagnostics, &generic_params, &inline_config);
-
-    let (implicit_precedence, _) = get_implicit_precedence(db, &mut diagnostics, &attributes)?;
-
-    // Check fully resolved.
-    if let Some((stable_ptr, inference_err)) = resolver.inference().finalize() {
-        inference_err.report(&mut diagnostics, stable_ptr);
-    }
-    let generic_params = resolver
-        .inference()
-        .rewrite(generic_params)
-        .map_err(|err| err.report(&mut diagnostics, function_syntax.stable_ptr().untyped()))?;
-    let signature = resolver
-        .inference()
-        .rewrite(signature)
-        .map_err(|err| err.report(&mut diagnostics, function_syntax.stable_ptr().untyped()))?;
 
     Ok(FunctionDeclarationData {
         diagnostics: diagnostics.build(),
@@ -150,9 +124,8 @@ pub fn priv_free_function_declaration_data(
         environment,
         generic_params,
         attributes,
-        resolver_data: Arc::new(resolver.data),
+        resolved_lookback: Arc::new(resolver.lookback),
         inline_config,
-        implicit_precedence,
     })
 }
 
@@ -170,12 +143,12 @@ pub fn free_function_body_diagnostics(
         .unwrap_or_default()
 }
 
-/// Query implementation of [crate::db::SemanticGroup::free_function_body_resolver_data].
-pub fn free_function_body_resolver_data(
+/// Query implementation of [crate::db::SemanticGroup::free_function_body_resolved_lookback].
+pub fn free_function_body_resolved_lookback(
     db: &dyn SemanticGroup,
     free_function_id: FreeFunctionId,
-) -> Maybe<Arc<ResolverData>> {
-    Ok(db.priv_free_function_body_data(free_function_id)?.resolver_data)
+) -> Maybe<Arc<ResolvedLookback>> {
+    Ok(db.priv_free_function_body_data(free_function_id)?.resolved_lookback)
 }
 
 // --- Computation ---
@@ -193,7 +166,7 @@ pub fn priv_free_function_body_data(
     let declaration = db.priv_free_function_declaration_data(free_function_id)?;
 
     // Generic params.
-    let mut resolver = Resolver::new(db, module_file_id);
+    let mut resolver = Resolver::new_with_inference(db, module_file_id);
     for generic_param in declaration.generic_params {
         resolver.add_generic_param(generic_param);
     }
@@ -212,13 +185,24 @@ pub fn priv_free_function_body_data(
     let body_expr = compute_root_expr(&mut ctx, &function_body, return_type)?;
     let ComputationContext { exprs, statements, resolver, .. } = ctx;
 
+    let direct_callees: HashSet<FunctionId> = exprs
+        .iter()
+        .filter_map(|(_id, expr)| try_extract_matches!(expr, Expr::FunctionCall))
+        .map(|f| f.function)
+        .collect();
+
     let expr_lookup: UnorderedHashMap<_, _> =
         exprs.iter().map(|(expr_id, expr)| (expr.stable_ptr(), expr_id)).collect();
-    let resolver_data = Arc::new(resolver.data);
+    let resolved_lookback = Arc::new(resolver.lookback);
     Ok(FunctionBodyData {
         diagnostics: diagnostics.build(),
         expr_lookup,
-        resolver_data,
-        body: Arc::new(FunctionBody { exprs, statements, body_expr }),
+        resolved_lookback,
+        body: Arc::new(FunctionBody {
+            exprs,
+            statements,
+            body_expr,
+            direct_callees: direct_callees.into_iter().collect(),
+        }),
     })
 }

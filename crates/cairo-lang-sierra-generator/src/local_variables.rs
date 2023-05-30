@@ -2,6 +2,8 @@
 #[path = "local_variables_test.rs"]
 mod test;
 
+use std::collections::HashSet;
+
 use cairo_lang_diagnostics::Maybe;
 use cairo_lang_lowering as lowering;
 use cairo_lang_lowering::{BlockId, VariableId};
@@ -17,7 +19,6 @@ use lowering::borrow_check::demand::DemandReporter;
 use lowering::borrow_check::Demand;
 use lowering::{FlatLowered, MatchInfo, Statement, VarRemapping};
 
-use crate::ap_tracking::{get_ap_tracking_configuration, ApTrackingConfiguration};
 use crate::db::SierraGenGroup;
 use crate::replace_ids::{DebugReplacer, SierraIdReplacer};
 use crate::utils::{
@@ -25,77 +26,57 @@ use crate::utils::{
     struct_construct_libfunc_id, struct_deconstruct_libfunc_id,
 };
 
-/// Information returned by [analyze_ap_changes].
-pub struct AnalyzeApChangesResult {
-    /// True if the function has a known_ap_change
-    pub known_ap_change: bool,
-    /// The variables that should be stored in locals as they are revoked during the function.
-    pub local_variables: OrderedHashSet<VariableId>,
-    /// Information about where ap tracking should be enabled and disabled.
-    pub ap_tracking_configuration: ApTrackingConfiguration,
-}
-
-/// Does ap change related analysis for a given function.
-/// See [AnalyzeApChangesResult].
-pub fn analyze_ap_changes(
+/// Given the lowering of a function, returns the set of variables which should be stored as local
+/// variables.
+pub fn find_local_variables(
     db: &dyn SierraGenGroup,
     lowered_function: &FlatLowered,
-) -> Maybe<AnalyzeApChangesResult> {
+) -> Maybe<OrderedHashSet<VariableId>> {
     lowered_function.blocks.has_root()?;
     let ctx = FindLocalsContext {
         db,
         lowered_function,
         used_after_revoke: Default::default(),
         block_callers: Default::default(),
-        non_ap_based: UnorderedHashSet::from_iter(lowered_function.parameters.iter().cloned()),
+        prune_from_locals: Default::default(),
         aliases: Default::default(),
-        partial_param_parents: Default::default(),
     };
     let mut analysis =
         BackAnalysis { lowered: lowered_function, cache: Default::default(), analyzer: ctx };
     let mut root_info = analysis.get_root_info()?;
     root_info.demand.variables_introduced(&mut analysis.analyzer, &lowered_function.parameters, ());
 
-    let mut ctx = analysis.analyzer;
-    let peeled_used_after_revoke: OrderedHashSet<_> =
-        ctx.used_after_revoke.iter().map(|var| ctx.peel_aliases(var)).copied().collect();
-    // Any used after revoke variable that might be revoked should be a local.
-    let locals: OrderedHashSet<VariableId> = peeled_used_after_revoke
-        .iter()
-        .filter(|var| ctx.might_be_revoked(&peeled_used_after_revoke, var))
-        .cloned()
-        .collect();
-
-    let mut need_ap_alignment = OrderedHashSet::new();
     if !root_info.known_ap_change {
-        // Add 'locals' to the set a variable that is not ap based.
-        ctx.non_ap_based.extend(locals.iter().cloned());
-
-        // Find all the variables that need ap alignement.
-        for (block_id, callers) in std::mem::take(&mut ctx.block_callers) {
+        // Revoke all convergences.
+        for (block_id, callers) in analysis.analyzer.block_callers.clone() {
             if callers.len() <= 1 {
                 continue;
             }
             let mut info = analysis.cache[&block_id].as_ref().map_err(|v| *v)?.clone();
             let introducd_vars = callers[0].1.keys().cloned().collect_vec();
-            info.demand.variables_introduced(&mut ctx, &introducd_vars, ());
-            for var in info.demand.vars.iter() {
-                if ctx.might_be_revoked(&peeled_used_after_revoke, ctx.peel_aliases(var)) {
-                    need_ap_alignment.insert(*var);
-                }
-            }
+            info.demand.variables_introduced(&mut analysis.analyzer, &introducd_vars, ());
+            analysis.analyzer.revoke_if_needed(&mut info, BranchInfo { known_ap_change: false });
         }
     }
 
-    Ok(AnalyzeApChangesResult {
-        known_ap_change: root_info.known_ap_change,
-        local_variables: locals,
-        ap_tracking_configuration: get_ap_tracking_configuration(
-            lowered_function,
-            root_info.known_ap_change,
-            need_ap_alignment,
-        ),
-    })
+    let FindLocalsContext { used_after_revoke, prune_from_locals, aliases, .. } = analysis.analyzer;
+
+    let function_inputs: HashSet<_> = lowered_function.parameters.iter().copied().collect();
+
+    let mut locals = OrderedHashSet::default();
+    for mut var in used_after_revoke.iter() {
+        while let Some(alias) = aliases.get(var) {
+            var = alias;
+        }
+        if prune_from_locals.contains(var) {
+            continue;
+        }
+        if function_inputs.contains(var) {
+            continue;
+        }
+        locals.insert(*var);
+    }
+    Ok(locals)
 }
 
 /// Context for the find_local_variables logic.
@@ -104,11 +85,8 @@ struct FindLocalsContext<'a> {
     lowered_function: &'a FlatLowered,
     used_after_revoke: OrderedHashSet<VariableId>,
     block_callers: OrderedHashMap<BlockId, Vec<(BlockId, VarRemapping)>>,
-    // Variables that are known not to be ap based.
-    non_ap_based: UnorderedHashSet<VariableId>,
+    prune_from_locals: UnorderedHashSet<VariableId>,
     aliases: UnorderedHashMap<VariableId, VariableId>,
-    /// A mapping from partial param variables to the containing variable.
-    partial_param_parents: UnorderedHashMap<VariableId, VariableId>,
 }
 
 pub type LoweredDemand = Demand<VariableId>;
@@ -121,7 +99,7 @@ impl<'a> DemandReporter<VariableId> for FindLocalsContext<'a> {
     type UsePosition = ();
     type IntroducePosition = ();
 }
-impl<'a> Analyzer<'_> for FindLocalsContext<'a> {
+impl<'a> Analyzer for FindLocalsContext<'a> {
     type Info = Maybe<AnalysisInfo>;
 
     fn visit_stmt(
@@ -137,16 +115,16 @@ impl<'a> Analyzer<'_> for FindLocalsContext<'a> {
         info.demand.variables_used(self, &stmt.inputs(), ());
     }
 
-    fn visit_goto(
+    fn visit_remapping(
         &mut self,
         info: &mut Self::Info,
-        (block_id, _statement_index): StatementLocation,
+        block_id: BlockId,
         target_block_id: BlockId,
         remapping: &VarRemapping,
     ) {
         let Ok(info) = info else {return;};
         self.block_callers.entry(target_block_id).or_default().push((block_id, remapping.clone()));
-        info.demand.apply_remapping(self, remapping.iter().map(|(dst, src)| (*dst, *src)), ());
+        info.demand.apply_remapping(self, remapping.iter().map(|(dst, src)| (*dst, *src)));
     }
 
     fn merge_match(
@@ -200,44 +178,6 @@ struct BranchInfo {
 }
 
 impl<'a> FindLocalsContext<'a> {
-    /// Given a variable that might be an alias follow aliases until we get the original variable.
-    pub fn peel_aliases(&'a self, mut var: &'a VariableId) -> &VariableId {
-        while let Some(alias) = self.aliases.get(var) {
-            var = alias;
-        }
-        var
-    }
-
-    /// Return true if the alias peeled variable might be revoked by ap changes.
-    /// If a variable is not ap-based or one of its ancestors is not ap-based, then it can't be
-    /// revoked.
-    ///
-    /// Note that vars in `peeled_used_after_revoke` are going to be non-ap based once we make the
-    /// relevent variables local.
-    pub fn might_be_revoked(
-        &self,
-        peeled_used_after_revoke: &OrderedHashSet<VariableId>,
-        peeled_var: &VariableId,
-    ) -> bool {
-        if self.non_ap_based.contains(peeled_var) {
-            return false;
-        }
-        // In the case of partial params, we check if one of its ancestors is a local variable, or
-        // will be used after the revoke, and thus will be used as a local variable. If that
-        // is the case, then 'var' can not be revoked.
-        let mut parent_var = peeled_var;
-        while let Some(grandparent) = self.partial_param_parents.get(parent_var) {
-            parent_var = self.peel_aliases(grandparent);
-            if self.non_ap_based.contains(parent_var)
-                || peeled_used_after_revoke.contains(parent_var)
-            {
-                return false;
-            }
-        }
-
-        true
-    }
-
     fn analyze_call(
         &mut self,
         concrete_function_id: cairo_lang_sierra::ids::ConcreteLibfuncId,
@@ -267,14 +207,11 @@ impl<'a> FindLocalsContext<'a> {
                 OutputVarReferenceInfo::SameAsParam { param_idx } => {
                     self.aliases.insert(*var, input_vars[param_idx]);
                 }
-                OutputVarReferenceInfo::PartialParam { param_idx } => {
-                    self.partial_param_parents.insert(*var, input_vars[param_idx]);
-                }
                 OutputVarReferenceInfo::NewTempVar { .. }
-                | OutputVarReferenceInfo::SimpleDerefs
-                | OutputVarReferenceInfo::Deferred(_) => {}
+                | OutputVarReferenceInfo::Deferred(_)
+                | OutputVarReferenceInfo::PartialParam { .. } => {}
                 OutputVarReferenceInfo::NewLocalVar => {
-                    self.non_ap_based.insert(*var);
+                    self.prune_from_locals.insert(*var);
                 }
             }
         }
@@ -292,7 +229,7 @@ impl<'a> FindLocalsContext<'a> {
         let outputs = statement.outputs();
         let branch_info = match statement {
             lowering::Statement::Literal(statement_literal) => {
-                self.non_ap_based.insert(statement_literal.output);
+                self.prune_from_locals.insert(statement_literal.output);
                 BranchInfo { known_ap_change: true }
             }
             lowering::Statement::Call(statement_call) => {

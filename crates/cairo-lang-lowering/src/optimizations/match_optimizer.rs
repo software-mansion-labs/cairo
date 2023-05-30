@@ -12,7 +12,7 @@ use crate::{
     StatementEnumConstruct, VarRemapping, VariableId,
 };
 
-/// Optimizes Statement::EnumConstruct that is followed by a match to jump to the target of the
+/// Optimizes Statement::EnumConstruct that is follwed by a match to jump to the target of the
 /// relevent match arm.
 pub fn optimize_matches(lowered: &mut FlatLowered) {
     if !lowered.blocks.is_empty() {
@@ -47,7 +47,7 @@ impl MatchOptimizerContext {
     fn statement_can_be_optimized_out(
         &mut self,
         stmt: &Statement,
-        info: &mut AnalysisInfo<'_>,
+        info: &mut AnalysisInfo,
         statement_location: (BlockId, usize),
     ) -> bool {
         let Statement::EnumConstruct(StatementEnumConstruct {
@@ -75,7 +75,7 @@ impl MatchOptimizerContext {
             remapping.insert(*var_id, *input);
         }
 
-        demand.apply_remapping(self, remapping.iter().map(|(dst, src)| (*dst, *src)), ());
+        demand.apply_remapping(self, remapping.iter().map(|(dst, src)| (*dst, *src)));
         info.demand = demand;
 
         self.fixes.push(FixInfo { statement_location, target_block: arm.block_id, remapping });
@@ -98,24 +98,24 @@ pub struct FixInfo {
 }
 
 #[derive(Clone)]
-struct OptimizationCandidate<'a> {
+struct OptimizationCandidate {
     /// The variable that is match.
     match_variable: VariableId,
 
     /// The match arms of the extern match that we are optimizing.
-    match_arms: &'a [MatchArm],
+    match_arms: Vec<MatchArm>,
 
     /// The demands at the arms.
     arm_demands: Vec<LoweredDemand>,
 }
 
 #[derive(Clone)]
-pub struct AnalysisInfo<'a> {
-    candidate: Option<OptimizationCandidate<'a>>,
+pub struct AnalysisInfo {
+    candidate: Option<OptimizationCandidate>,
     demand: LoweredDemand,
 }
-impl<'a> Analyzer<'a> for MatchOptimizerContext {
-    type Info = AnalysisInfo<'a>;
+impl Analyzer for MatchOptimizerContext {
+    type Info = AnalysisInfo;
 
     fn visit_stmt(
         &mut self,
@@ -131,15 +131,15 @@ impl<'a> Analyzer<'a> for MatchOptimizerContext {
         info.candidate = None;
     }
 
-    fn visit_goto(
+    fn visit_remapping(
         &mut self,
         info: &mut Self::Info,
-        _statement_location: StatementLocation,
+        _block_id: BlockId,
         _target_block_id: BlockId,
         remapping: &VarRemapping,
     ) {
         if !remapping.is_empty() {
-            info.demand.apply_remapping(self, remapping.iter().map(|(dst, src)| (*dst, *src)), ());
+            info.demand.apply_remapping(self, remapping.iter().map(|(dst, src)| (*dst, *src)));
 
             if let Some(ref mut candidate) = &mut info.candidate {
                 let expected_remappings =
@@ -164,7 +164,7 @@ impl<'a> Analyzer<'a> for MatchOptimizerContext {
     fn merge_match(
         &mut self,
         _statement_location: StatementLocation,
-        match_info: &'a MatchInfo,
+        match_info: &MatchInfo,
         infos: &[Self::Info],
     ) -> Self::Info {
         let arm_demands = zip_eq(match_info.arms(), infos)
@@ -185,7 +185,7 @@ impl<'a> Analyzer<'a> for MatchOptimizerContext {
             {
                 Some(OptimizationCandidate {
                     match_variable: *input,
-                    match_arms: arms,
+                    match_arms: arms.to_vec(),
                     arm_demands: infos.iter().map(|info| info.demand.clone()).collect(),
                 })
             }
