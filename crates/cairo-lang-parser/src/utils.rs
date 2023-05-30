@@ -10,6 +10,7 @@ use cairo_lang_utils::Upcast;
 
 use crate::db::ParserDatabase;
 use crate::parser::Parser;
+use crate::validation::validate;
 use crate::ParserDiagnostic;
 
 /// A salsa database for parsing only.
@@ -40,9 +41,9 @@ impl Upcast<dyn FilesGroup> for SimpleParserDatabase {
 /// Reads a cairo file to the db and return the syntax_root and diagnostic of its parsing.
 pub fn get_syntax_root_and_diagnostics_from_file(
     db: &SimpleParserDatabase,
-    cairo_filename: &str,
+    cairo_filepath: PathBuf,
 ) -> (SyntaxNode, Diagnostics<ParserDiagnostic>) {
-    let file_id = FileId::new(db, PathBuf::from(cairo_filename));
+    let file_id = FileId::new(db, cairo_filepath);
     let contents = db.file_content(file_id).unwrap();
     get_syntax_root_and_diagnostics(db, file_id, contents.as_str())
 }
@@ -65,5 +66,6 @@ pub fn get_syntax_file_and_diagnostics(
 ) -> (SyntaxFile, Diagnostics<ParserDiagnostic>) {
     let mut diagnostics = DiagnosticsBuilder::new();
     let syntax_file = Parser::parse_file(db, &mut diagnostics, file_id, contents);
+    let _ = validate(syntax_file.as_syntax_node(), db, &mut diagnostics, file_id);
     (syntax_file, diagnostics.build())
 }

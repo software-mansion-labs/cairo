@@ -35,26 +35,32 @@ pub fn get_type_size_map(
             | CoreTypeConcrete::StarkNet(StarkNetTypeConcrete::StorageAddress(_))
             | CoreTypeConcrete::StarkNet(StarkNetTypeConcrete::ContractAddress(_))
             | CoreTypeConcrete::StarkNet(StarkNetTypeConcrete::ClassHash(_))
+            | CoreTypeConcrete::StarkNet(StarkNetTypeConcrete::Secp256K1EcPoint(_))
             | CoreTypeConcrete::Pedersen(_)
+            | CoreTypeConcrete::Poseidon(_)
             | CoreTypeConcrete::Felt252Dict(_)
+            | CoreTypeConcrete::Felt252DictEntry(_)
             | CoreTypeConcrete::SegmentArena(_) => Some(1),
             CoreTypeConcrete::Array(_)
             | CoreTypeConcrete::EcPoint(_)
             | CoreTypeConcrete::SquashedFelt252Dict(_) => Some(2),
-            CoreTypeConcrete::NonZero(wrapped_ty) | CoreTypeConcrete::Snapshot(wrapped_ty) => {
+            CoreTypeConcrete::NonZero(wrapped_ty)
+            | CoreTypeConcrete::Snapshot(wrapped_ty)
+            | CoreTypeConcrete::Uninitialized(wrapped_ty) => {
                 type_sizes.get(&wrapped_ty.ty).cloned()
             }
             CoreTypeConcrete::EcState(_) => Some(3),
-            CoreTypeConcrete::Enum(enum_type) => {
-                Some(1 + enum_type.variants.iter().map(|variant| type_sizes[variant]).max()?)
-            }
+            CoreTypeConcrete::Uint128MulGuarantee(_) => Some(4),
+            CoreTypeConcrete::Enum(enum_type) => Some(
+                1 + enum_type
+                    .variants
+                    .iter()
+                    .map(|variant| type_sizes[variant])
+                    .max()
+                    .unwrap_or_default(),
+            ),
             CoreTypeConcrete::Struct(struct_type) => {
                 Some(struct_type.members.iter().map(|member| type_sizes[member]).sum())
-            }
-            CoreTypeConcrete::Uninitialized(_) => {
-                // Any size operations on `Uninitialized` are not supported, so we skip adding them
-                // to the map.
-                continue;
             }
         }?;
         type_sizes.insert(declaration.id.clone(), size);

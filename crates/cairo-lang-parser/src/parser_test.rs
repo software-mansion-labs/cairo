@@ -1,5 +1,6 @@
 #![allow(non_upper_case_globals)]
 use std::fmt::Write;
+use std::path::PathBuf;
 
 use cairo_lang_utils::ordered_hash_map::OrderedHashMap;
 use test_case::test_case;
@@ -108,8 +109,9 @@ fn parse_and_compare_tree_maybe_fix(test_params: &ParserTreeTestParams, fix: boo
     let db_val = SimpleParserDatabase::default();
     let db = &db_val;
 
-    let (syntax_root, diagnostics) =
-        get_syntax_root_and_diagnostics_from_file(db, test_params.cairo_filename);
+    let cairo_filepath: PathBuf =
+        [env!("CARGO_MANIFEST_DIR"), test_params.cairo_filename].into_iter().collect();
+    let (syntax_root, diagnostics) = get_syntax_root_and_diagnostics_from_file(db, cairo_filepath);
     let diagnostics_str = diagnostics.format(db);
 
     let mut printed_tree =
@@ -158,8 +160,9 @@ fn parse_and_compare_colored_maybe_fix(test_params: &ParserColoredTestParams, fi
     let db_val = SimpleParserDatabase::default();
     let db = &db_val;
 
-    let (syntax_root, _diagnostics) =
-        get_syntax_root_and_diagnostics_from_file(db, test_params.cairo_filename);
+    let cairo_filepath: PathBuf =
+        [env!("CARGO_MANIFEST_DIR"), test_params.cairo_filename].into_iter().collect();
+    let (syntax_root, _diagnostics) = get_syntax_root_and_diagnostics_from_file(db, cairo_filepath);
     let printed = print_colored(db, &syntax_root, test_params.verbose);
     let expected = read_file(test_params.expected_colored_filename);
     compare_printed_and_expected_maybe_fix(
@@ -306,17 +309,18 @@ cairo_lang_test_utils::test_file_test!(
     diagnostic,
     "src/parser_test_data",
     {
-        module_diagnostics: "module_diagnostics",
         exprs: "exprs",
         fn_: "fn",
         if_: "if",
+        illegal_string_escapes: "illegal_string_escapes",
         match_: "match",
+        module_diagnostics: "module_diagnostics",
         pattern: "pattern",
-        unterminated_string: "unterminated_string",
         question_mark: "question_mark",
-        semicolon: "semicolon",
         reserved_identifier: "reserved_identifier",
+        semicolon: "semicolon",
         underscore_not_supported: "underscore_not_supported",
+        unterminated_string: "unterminated_string",
     },
     get_diagnostics
 );
@@ -327,6 +331,7 @@ cairo_lang_test_utils::test_file_test!(
     {
         constant: "constant",
         enum_: "enum",
+        loop_: "loop",
         item_free_function: "item_free_function",
         function_signature: "function_signature",
         function_call: "function_call",
@@ -334,10 +339,14 @@ cairo_lang_test_utils::test_file_test!(
         item_trait: "item_trait",
         let_statement: "let_statement",
         if_else: "if_else",
+        impl_alias: "impl_alias",
         literal: "literal",
+        attribute_errors: "attribute_errors",
         module: "module",
         op_eq: "op_eq",
         array: "array",
+        attrs: "attrs",
+        inline_macro: "inline_macro",
     },
     test_partial_parser_tree
 );

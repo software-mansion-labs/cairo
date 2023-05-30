@@ -33,7 +33,9 @@ impl SignatureAndTypeGenericLibfunc for StoreTempLibfuncWrapped {
         context: &dyn SignatureSpecializationContext,
         ty: ConcreteTypeId,
     ) -> Result<LibfuncSignature, SpecializationError> {
-        context.as_type_specialization_context().get_type_info(ty.clone())?;
+        if !context.as_type_specialization_context().get_type_info(ty.clone())?.storable {
+            return Err(SpecializationError::UnsupportedGenericArg);
+        }
         Ok(LibfuncSignature::new_non_branch_ex(
             vec![ParamSignature {
                 ty: ty.clone(),
@@ -41,10 +43,7 @@ impl SignatureAndTypeGenericLibfunc for StoreTempLibfuncWrapped {
                 allow_add_const: true,
                 allow_const: true,
             }],
-            vec![OutputVarInfo {
-                ty,
-                ref_info: OutputVarReferenceInfo::NewTempVar { idx: Some(0) },
-            }],
+            vec![OutputVarInfo { ty, ref_info: OutputVarReferenceInfo::NewTempVar { idx: 0 } }],
             SierraApChange::Known { new_vars_only: true },
         ))
     }
@@ -64,6 +63,9 @@ impl SignatureAndTypeGenericLibfunc for StoreLocalLibfuncWrapped {
     ) -> Result<LibfuncSignature, SpecializationError> {
         let uninitialized_type =
             context.get_wrapped_concrete_type(UninitializedType::id(), ty.clone())?;
+        if !context.as_type_specialization_context().get_type_info(ty.clone())?.storable {
+            return Err(SpecializationError::UnsupportedGenericArg);
+        }
         Ok(LibfuncSignature::new_non_branch_ex(
             vec![
                 ParamSignature::new(uninitialized_type),

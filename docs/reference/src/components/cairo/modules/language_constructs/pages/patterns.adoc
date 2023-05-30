@@ -1,0 +1,16 @@
+= Patterns
+
+Patterns are used to match values to specific structures.
+They can be used in xref:let-statement.adoc[`let` statements] and xref:match-expressions.adoc[`match`] arms.
+== Pattern examples
+
+[source]
+----
+MyStruct {a: a, b : _b, c: _}
+MyEnum(a, b, c)
+(a, b, c)
+var_name
+12344
+'short_string'
+_
+----

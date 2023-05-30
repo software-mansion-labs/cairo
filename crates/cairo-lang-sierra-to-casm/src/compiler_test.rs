@@ -26,6 +26,7 @@ use crate::test_utils::{build_metadata, read_sierra_example_file, strip_comments
                 libfunc store_temp_box_felt252 = store_temp<BoxFelt252>;
                 libfunc rename_felt252 = rename<felt252>;
                 libfunc call_foo = function_call<user@foo>;
+                libfunc disable_ap_tracking = disable_ap_tracking;
 
                 libfunc call_box_and_back = function_call<user@box_and_back>;
 
@@ -41,39 +42,41 @@ use crate::test_utils::{build_metadata, read_sierra_example_file, strip_comments
                 return([7], [8], [4]);                             // #9
 
                 finalize_locals() -> ();                           // #10
-                felt252_is_zero([1]) { fallthrough() 17([1]) };    // #11
+                felt252_is_zero([1]) { fallthrough() 18([1]) };    // #11
                 branch_align() -> ();                              // #12
                 felt252_dup([2]) -> ([1], [2]);                    // #13
                 store_temp_felt252([1]) -> ([1]);                  // #14
                 store_temp_felt252([2]) -> ([2]);                  // #15
-                return ([1], [2]);                                 // #16
+                disable_ap_tracking() -> ();                       // #16
+                return ([1], [2]);                                 // #17
 
-                branch_align() -> ();                              // #17
-                jump() { 19() };                                   // #18
-                felt252_unwrap_non_zero([1]) -> ([1]);                   // #19
-                felt252_dup([2]) -> ([2], [3]);                    // #20
-                felt252_sub([1], [3]) -> ([1]);                    // #21
-                store_temp_felt252([1]) -> ([1]);                  // #22
-                felt252_mul_2([1]) -> ([1]);                       // #23
-                store_temp_felt252([1]) -> ([1]);                  // #24
-                store_temp_felt252([2]) -> ([2]);                  // #25
-                call_foo([1], [2]) -> ([1], [2]);                  // #26
-                return ([1], [2]);                                 // #27
+                branch_align() -> ();                              // #18
+                jump() { 20() };                                   // #19
+                felt252_unwrap_non_zero([1]) -> ([1]);             // #20
+                felt252_dup([2]) -> ([2], [3]);                    // #21
+                felt252_sub([1], [3]) -> ([1]);                    // #22
+                store_temp_felt252([1]) -> ([1]);                  // #23
+                felt252_mul_2([1]) -> ([1]);                       // #24
+                store_temp_felt252([1]) -> ([1]);                  // #25
+                store_temp_felt252([2]) -> ([2]);                  // #26
+                call_foo([1], [2]) -> ([1], [2]);                  // #27
+                return ([1], [2]);                                 // #28
 
-                felt252_into_box([1]) -> ([2]);                    // #28
-                store_temp_box_felt252([2]) -> ([2]);              // #29
-                felt252_unbox([2]) -> ([3]);                       // #30
-                store_temp_felt252([3]) -> ([3]);                  // #31
-                return ([3]);                                      // #32
+                felt252_into_box([1]) -> ([2]);                    // #29
+                store_temp_box_felt252([2]) -> ([2]);              // #30
+                felt252_unbox([2]) -> ([3]);                       // #31
+                store_temp_felt252([3]) -> ([3]);                  // #32
+                disable_ap_tracking() -> ();                       // #33
+                return ([3]);                                      // #34
 
-                store_temp_felt252([1]) -> ([1]);                  // #33
-                call_box_and_back([1]) -> ([1]);                   // #34
-                return ([1]);                                      // #35
+                store_temp_felt252([1]) -> ([1]);                  // #35
+                call_box_and_back([1]) -> ([1]);                   // #36
+                return ([1]);                                      // #37
 
                 test_program@0([1]: felt252, [2]: felt252) -> (felt252, felt252, felt252);
                 foo@10([1]: felt252, [2]: felt252) -> (felt252, felt252);
-                box_and_back@28([1]: felt252) -> (felt252);
-                box_and_back_wrapper@33([1]: felt252) -> (felt252);
+                box_and_back@29([1]: felt252) -> (felt252);
+                box_and_back_wrapper@35([1]: felt252) -> (felt252);
             "},
             false,
             indoc! {"
@@ -190,42 +193,6 @@ use crate::test_utils::{build_metadata, read_sierra_example_file, strip_comments
                 ret;
             "};
             "branch align")]
-#[test_case(indoc!{"
-                type RangeCheck = RangeCheck;
-                type u128 = u128;
-
-                libfunc revoke_ap_tracking = revoke_ap_tracking;
-                libfunc branch_align = branch_align;
-                libfunc jump = jump;
-                libfunc u128_lt = u128_lt;
-                libfunc store_u128 = store_temp<u128>;
-                libfunc store_rc = store_temp<RangeCheck>;
-
-                revoke_ap_tracking() -> ();
-                u128_lt([1], [2], [3]) {fallthrough([1]) 4([1]) };
-                branch_align() -> ();
-                jump() { 5() };
-                branch_align() -> ();
-
-                store_rc([1]) -> ([1]);
-                return ([1]);
-
-                test_program@0([1]: RangeCheck, [2]: u128, [3]: u128) -> (RangeCheck);
-            "}, true, indoc!{"
-                [fp + -4] = [ap + 1] + [fp + -3], ap++;
-                %{ memory[ap + -1] = memory[ap + 0] < 340282366920938463463374607431768211456 %}
-                jmp rel 7 if [ap + -1] != 0, ap++;
-                // a < b.
-                [ap + 0] = [ap + -1] + 340282366920938463463374607431768211456, ap++;
-                [ap + -1] = [[fp + -5] + 0];
-                jmp rel 5;
-                // a < b.
-                [ap + -1] = [[fp + -5] + 0];
-                jmp rel 2;
-                // Store range_check and return.
-                [ap + 0] = [fp + -5] + 1, ap++;
-                ret;
-            "}; "u128_lt")]
 #[test_case(indoc! {"
                 type u128 = u128;
                 type RangeCheck = RangeCheck;
@@ -280,9 +247,9 @@ use crate::test_utils::{build_metadata, read_sierra_example_file, strip_comments
 #[test_case(read_sierra_example_file("fib_jumps").as_str(),
             true,
             indoc! {"
-                jmp rel 7 if [fp + -3] != 0;
+                jmp rel 8 if [fp + -3] != 0;
                 [ap + 0] = [fp + -5], ap++;
-                [ap + 0] = [fp + -4], ap++;
+                [ap + 0] = [fp + -4] + 1070, ap++;
                 [ap + 0] = 1, ap++;
                 ret;
 
@@ -295,10 +262,10 @@ use crate::test_utils::{build_metadata, read_sierra_example_file, strip_comments
                 [ap + 0] = 0, ap++;
 
                 // Statement #18, check n.
-                jmp rel 6 if [ap + -5] != 0;
+                jmp rel 7 if [ap + -5] != 0;
                 // Statement # 19 - n == 0, so we can return the latest a.
                 [ap + 0] = [ap + -4], ap++;
-                [ap + 0] = [ap + -4], ap++;
+                [ap + 0] = [ap + -4] + 470, ap++;
                 [ap + 0] = [ap + -4], ap++;
                 ret;
 
@@ -320,7 +287,7 @@ use crate::test_utils::{build_metadata, read_sierra_example_file, strip_comments
                 [ap + 0] = [ap + -3], ap++;
                 [ap + 0] = [ap + -7] + [ap + -6], ap++;
                 [ap + 0] = [ap + -8], ap++;
-                jmp rel -23;
+                jmp rel -24;
 
                 // Statement # 40  - Ran out of gas - returning updated gb and -1.
                 [ap + 0] = [ap + -6] + 1, ap++;
@@ -374,6 +341,22 @@ use crate::test_utils::{build_metadata, read_sierra_example_file, strip_comments
                 ret;
             "};
             "felt252_div_const")]
+#[test_case(indoc! {"
+            type never = Enum<ut@never>;
+
+            libfunc enum_match<never> = enum_match<never>;
+
+            enum_match<never>([0]) { };
+            return();
+
+            main@0([0]: never) -> ();
+            main2@1() -> ();
+        "},
+            false,
+            indoc! {"
+                ret;
+            "};
+            "empty_enum")]
 fn sierra_to_casm(sierra_code: &str, check_gas_usage: bool, expected_casm: &str) {
     let program = ProgramParser::new().parse(sierra_code).unwrap();
     pretty_assertions::assert_eq!(
@@ -386,6 +369,8 @@ fn sierra_to_casm(sierra_code: &str, check_gas_usage: bool, expected_casm: &str)
 
 // TODO(ilya, 10/10/2022): Improve error messages.
 #[test_case(indoc! {"
+                type felt252 = felt252;
+
                 return([2]);
 
                 test_program@0() -> (felt252);
@@ -420,7 +405,7 @@ fn sierra_to_casm(sierra_code: &str, check_gas_usage: bool, expected_casm: &str)
 
                 test_program@0([1]: felt252) -> ();
             "},
-            "Error from program registry";
+            "Error from program registry: Could not find the requested libfunc";
             "undeclared libfunc")]
 #[test_case(indoc! {"
                 type felt252 = felt252;
@@ -428,7 +413,7 @@ fn sierra_to_casm(sierra_code: &str, check_gas_usage: bool, expected_casm: &str)
                 libfunc store_temp_felt252 = store_temp<felt252>;
                 libfunc store_temp_felt252 = store_temp<felt252>;
             "},
-            "Error from program registry";
+            "Error from program registry: Used the same concrete libfunc id twice";
             "Concrete libfunc Id used twice")]
 #[test_case(indoc! {"
                 type felt252 = felt252;
@@ -458,11 +443,19 @@ fn sierra_to_casm(sierra_code: &str, check_gas_usage: bool, expected_casm: &str)
             "}, "InvalidStatementIdx";
             "Invalid entry point")]
 #[test_case(indoc! {"
+                type felt252 = felt252;
+
                 return();
 
                 foo@0([1]: felt252, [1]: felt252) -> ();
             "}, "#0: Invalid function declaration.";
             "Bad Declaration")]
+#[test_case(indoc! {"
+                return();
+
+                foo@0([0]: BadType) -> ();
+            "}, "Error from program registry: Could not find the requested type";
+            "Unknown type")]
 #[test_case(indoc! {"
             return();
             "}, "MissingAnnotationsForStatement";
@@ -470,7 +463,7 @@ fn sierra_to_casm(sierra_code: &str, check_gas_usage: bool, expected_casm: &str)
 #[test_case(indoc! {"
                 type NonZeroFelt252 = NonZero<felt252>;
                 type felt252 = felt252;
-            "}, "Error from program registry";
+            "}, "Error from program registry: Error during type specialization";
             "type ordering bad for building size map")]
 #[test_case(indoc! {"
                 type felt252 = felt252;
@@ -623,7 +616,7 @@ fn sierra_to_casm(sierra_code: &str, check_gas_usage: bool, expected_casm: &str)
                 return (); // The failed merge statement #8.
 
                 test_program@0([1]: felt252) -> ();
-            "}, "#8: Inconsistent ap tracking base.";
+            "}, "#8: Inconsistent ap tracking.";
             "Inconsistent ap tracking base.")]
 #[test_case(indoc! {"
                 libfunc enable_ap_tracking = enable_ap_tracking;
@@ -697,7 +690,7 @@ of the libfunc or return statement.";
                 return ();
 
                 foo@0([1]: felt252) -> ();
-            "}, "#7: Inconsistent ap tracking base.";
+            "}, "#7: Inconsistent ap tracking.";
             "Inconsistent ap tracking.")]
 #[test_case(indoc! {"
                 libfunc finalize_locals = finalize_locals;
@@ -761,13 +754,16 @@ of the libfunc or return statement.";
 
                 libfunc alloc_local_felt252 = alloc_local<felt252>;
                 libfunc store_temp_felt252 = store_temp<UninitializedFelt252>;
+                libfunc drop_felt252 = drop<UninitializedFelt252>;
 
                 alloc_local_felt252() -> ([1]);
                 store_temp_felt252([1]) -> ([1]);
+                drop_felt252([1]) -> ();
                 return ();
 
                 foo@0() -> ();
-            "}, "#1: The functionality is supported only for sized types.";
+            "},
+            "Error from program registry: Error during libfunc specialization";
             "store_temp<Uninitialized<felt252>()")]
 #[test_case(indoc! {"
                 return ();
@@ -776,6 +772,32 @@ of the libfunc or return statement.";
                 bar@0() -> ();
             "}, "#0: Belongs to two different functions.";
             "Statement in two functions")]
+#[test_case(indoc! {"
+                type felt252 = felt252;
+                type UninitializedFelt252 = Uninitialized<felt252>;
+
+                libfunc enable_ap_tracking = enable_ap_tracking;
+                libfunc disable_ap_tracking = disable_ap_tracking;
+                libfunc alloc_local_felt252 = alloc_local<felt252>;
+
+                disable_ap_tracking() -> ();
+                enable_ap_tracking() -> ();
+                alloc_local_felt252() -> ([1]);
+
+                return ();
+
+                foo@0() -> ();
+            "}, "#2: alloc_local is not allowed at this point.";
+            "Alloc local after re-enabling ap tracking")]
+#[test_case(indoc! {"
+                type felt252 = felt252;
+                type UninitializedFelt252 = Uninitialized<felt252>;
+
+                return ();
+
+                foo@0([1]: UninitializedFelt252) -> ();
+            "}, "Error from program registry: Function parameter type must be storable";
+            "Function that uses unstorable types")]
 fn compiler_errors(sierra_code: &str, expected_result: &str) {
     let program = ProgramParser::new().parse(sierra_code).unwrap();
     pretty_assertions::assert_eq!(

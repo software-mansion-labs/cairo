@@ -1,0 +1,14 @@
+= Module item
+
+A module item is a declaration that defines a module.
+
+```rust
+// This is a module defined in the current file.
+mod foo {
+    // ... items ...
+}
+
+// This is a module defined in `a/bar.cairo`.
+mod bar;
+```
+See xref:modules-and-source-files.adoc[Modules & source files]

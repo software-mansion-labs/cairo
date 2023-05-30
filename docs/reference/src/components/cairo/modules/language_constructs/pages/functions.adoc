@@ -1,0 +1,110 @@
+= Functions
+
+A function is a unit of code that performs some logic. It is defined using the `fn` keyword.
+
+Examples of functions are:
+[source]
+----
+fn main() {
+    let x = 3;
+}
+
+fn inc(x: u32) -> u32 {
+    x + 1
+}
+----
+
+A function consists of 2 main parts: the function signature and the function body.
+For example,
+[source]
+----
+// Function signature |         | Body starts here
+//                    V         V
+fn inc_n<T, const N>(x: T) -> T {
+    x + N
+}
+----
+
+== Function signature
+
+The function signature defines the function name, the xref:generics.adoc[generic parameters],
+the parameters and the return type.
+
+[source,rust]
+----
+fn <name>[<<generic_parameters>>](<parameters>) [-> <return_type>]
+----
+
+In the example above, the signature is `fn inc_n<T, const N>(x: T) \-> T`.
+
+=== Function name
+
+The function name is the name used to refer to the function.
+The Cairo convention is to name functions using the 'snake_case' form.
+
+In the example above, the function name is `inc_n`.
+
+=== Parameters
+
+Parameters define the types of the values that are passed to the function when it is called
+and define xref:variables.adoc[variables] to the function's body.
+Each such variable can be referred to using the parameter name to be used in the function body.
+
+The parameters are defined using a comma-separated list of `[<modifier>] <name>: <type>` items, enclosed by
+parentheses (`(...)`).
+
+In the `inc_n` example above, there is one parameter named `x` of the generic type `T`.
+
+You can specify modifiers of the function parameters. These can be either `mut` or `ref` (not both).
+
+A parameter that is defined with the `mut` modifier, defines a mutable variable,
+and can be modified in the function.
+
+A parameter that is defined with the `ref` modifier, simulates a reference to the
+value passed to the function. It behaves similarly to a mutable variable, but mutating
+it also affects its value in the caller function. For example:
+[source,rust]
+----
+    fn foo(mut x: u32, ref y: u32) {
+        x *= 3;
+        y = x + 1;
+    }
+----
+`x` is a mutable parameter and `y` is a reference parameter. See below an example of calling it.
+
+=== Return type
+
+The return type defines the type of the value that is returned by the function when it is called.
+It is the type that appears in the signature after the `\->`.
+
+Note that in Cairo, functions always return a value.
+When the function has no particular value it should return, it is common to return
+the xref:unit-type.adoc[unit type] (`()`).
+In this case, the return type can be omitted (including the `\->`).
+
+In the example above, the return type is of type `T`.
+
+== Function body
+
+// TODO(yuval): move most of it to a separate page about block expressions.
+
+The function body is the code that is executed when the function is called.
+It is enclosed by the curly braces (`{...}`) and consists of a list of 0 or
+more xref:statements.adoc[statements], and an then an optional xref:expressions.adoc[expression]
+which is called the "tail expression".
+
+The statements are executed one after the other in the defined order.
+Then, if a tail expression exists, its evaluated value is returned by the function.
+If there is no tail expression, the function returns the xref:unit-type.adoc[unit type] (`()`).
+
+In the example above, the function body is `{ x + N }`, which consists of zero statements and a
+tail expression `x + N` whose value is the return value of the function.
+
+== Calling a function
+
+See xref:function-calls.adoc[Function calls].
+
+// TODO(yuval): mention methods/self?
+// TODO(yuval): mention panics/implicits? (it's part of the signature).
+// TODO(yuval): mention inline.
+// TODO(yuval): mention local compilability.

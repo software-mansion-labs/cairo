@@ -36,8 +36,11 @@ extern fn glee<A, b>(var1: int,) -> crate::S<int> nopanic;
 
 struct A<A, B> {
     member: bool,
+    #[annot(a)]
     member2: (bool, felt252, ())
 }
 
 type Renamed = submod::inner::Other;
 type Generic<T> = super::other::OtherGeneric::<T>;
+
+#[attribute_without_item]

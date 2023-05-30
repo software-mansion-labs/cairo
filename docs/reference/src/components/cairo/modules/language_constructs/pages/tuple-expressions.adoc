@@ -1,0 +1,17 @@
+= Tuple expressions
+
+A tuple expression constructs xref:tuple-types.adoc[tuple] values.
+The syntax for tuple expressions is a parenthesized, comma separated list of expressions.
+1-ary tuple expressions require a comma after their tuple initializer operand to be disambiguated with a parenthetical expression.
+
+Tuple expressions without any tuple initializer operands produce the unit tuple value.
+
+Examples:
+
+[cols="1,1",options="header"]
+|===
+| Expression                    | Type
+| ()                            | ()
+| (1_u32,)                      | (u32,)
+| (1_u32, Option::Some(3_u8))   | (u32, Option<u8>)
+| (True, False, 'abc')          | (bool, bool, felt252)

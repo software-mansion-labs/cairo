@@ -1,25 +1,11 @@
-use cairo_felt::Felt as Felt252;
+use cairo_felt::Felt252;
 use cairo_lang_casm::builder::CasmBuilder;
 use cairo_lang_casm::casm_build_extend;
-use cairo_lang_sierra::extensions::consts::SignatureAndConstConcreteLibfunc;
 use num_bigint::{BigInt, ToBigInt};
-use num_traits::Signed;
 
 use super::{CompiledInvocation, CompiledInvocationBuilder, InvocationError};
-use crate::invocations::misc::{build_single_cell_const, validate_under_limit};
+use crate::invocations::misc::validate_under_limit;
 use crate::invocations::{add_input_variables, CostValidationInfo};
-
-/// Handles the storage_base_address_const libfunc.
-pub fn build_storage_base_address_const(
-    builder: CompiledInvocationBuilder<'_>,
-    libfunc: &SignatureAndConstConcreteLibfunc,
-) -> Result<CompiledInvocation, InvocationError> {
-    let addr_bound = (BigInt::from(1) << 251) - 256;
-    if libfunc.c.is_negative() || libfunc.c >= addr_bound {
-        return Err(InvocationError::InvalidGenericArg);
-    }
-    build_single_cell_const(builder, libfunc.c.clone())
-}
 
 /// Handles the storage_address_from_base_and_offset libfunc.
 pub fn build_storage_address_from_base_and_offset(
@@ -64,8 +50,7 @@ pub fn build_storage_base_address_from_felt252(
     }
     validate_under_limit::<1>(
         &mut casm_builder,
-        // PRIME - addr_bound.
-        &(-Felt252::from(addr_bound.clone())).to_biguint().to_bigint().unwrap(),
+        &(Felt252::prime().to_bigint().unwrap() - addr_bound.clone()),
         res,
         range_check,
         &auxiliary_vars[..4],
