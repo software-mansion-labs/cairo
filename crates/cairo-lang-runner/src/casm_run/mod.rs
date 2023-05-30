@@ -313,6 +313,9 @@ impl HintProcessor for CairoHintProcessor<'_> {
             Hint::Core(core_hint_base) => {
                 return execute_core_hint_base(vm, exec_scopes, core_hint_base);
             }
+            Hint::Protostar(hint) => {
+                return execute_protostar_hint(vm, exec_scopes, hint);
+            },
             Hint::Starknet(hint) => hint,
         };
         match hint {
@@ -1295,6 +1298,27 @@ pub fn execute_core_hint(
         }
     };
     Ok(())
+}
+
+fn execute_protostar_hint(
+    vm: &mut VirtualMachine,
+    exec_scopes: &mut ExecutionScopes,
+    hint: &cairo_lang_casm::hints::ProtostarHint,
+) -> Result<(), HintError> {
+    match hint {
+        &ProtostarHint::Roll { .. } => todo!(),
+        &ProtostarHint::Warp { .. } => todo!(),
+        &ProtostarHint::Declare { .. } => todo!(),
+        &ProtostarHint::DeclareCairo0 { .. } => todo!(),
+        &ProtostarHint::StartPrank { .. } => todo!(),
+        &ProtostarHint::StopPrank { .. } => todo!(),
+        &ProtostarHint::Invoke { .. } => todo!(),
+        &ProtostarHint::MockCall { .. } => todo!(),
+        &ProtostarHint::Deploy { .. } => todo!(),
+        &ProtostarHint::Prepare { .. } => todo!(),
+        &ProtostarHint::Call { .. } => todo!(),
+        &ProtostarHint::Print { .. } => todo!(),
+    }
 }
 
 /// Reads the result of a function call that returns `Array<felt252>`.

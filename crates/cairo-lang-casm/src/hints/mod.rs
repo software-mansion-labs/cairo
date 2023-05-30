@@ -63,13 +63,21 @@ pub enum StarknetHint {
 
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
 pub enum ProtostarHint {
-    Roll {
-        address: ResOperand,
-        caller_address: ResOperand,
+    StartRoll {
+        block_number: ResOperand,
+        target_contract_address: ResOperand,
         err_code: CellRef,
     },
-    Warp {
-        blk_timestamp: ResOperand,
+    StopRoll {
+        target_contract_address: ResOperand,
+        err_code: CellRef,
+    },
+    StartWarp {
+        block_timestamp: ResOperand,
+        target_contract_address: ResOperand,
+        err_code: CellRef,
+    },
+    StopWarp {
         target_contract_address: ResOperand,
         err_code: CellRef,
     },
@@ -140,7 +148,6 @@ pub enum ProtostarHint {
         start: ResOperand,
         end: ResOperand,
     },
-
 }
 
 // Represents a cairo core hint.
@@ -779,6 +786,18 @@ impl Display for CoreHint {
             CoreHint::AssertLeIsSecondArcExcluded { skip_exclude_b_minus_a } => {
                 write!(f, "memory{skip_exclude_b_minus_a} = 1 if excluded != 1 else 0",)
             }
+            CoreHint::DebugPrint { start, end } => writedoc!(
+                f,
+                "
+
+                    start = {}
+                    end = {}
+                    for i in range(start, end):
+                        print(memory[i])
+                ",
+                ResOperandFormatter(start),
+                ResOperandFormatter(end),
+            ),
             CoreHint::AllocConstantSize { size, dst } => {
                 writedoc!(
                     f,
@@ -858,21 +877,45 @@ impl Display for StarknetHint {
 impl Display for ProtostarHint {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ProtostarHint::Roll { address, caller_address, err_code } => {
+            ProtostarHint::StartRoll { block_number, target_contract_address, err_code } => {
                 writedoc!(
                     f,
                     "
-                    memory{err_code} = roll(address=memory[{address}[0]], \
-                     caller_address=memory[{caller_address}[0]]).err_code; 
+                    memory{err_code} = start_roll(
+                        block_number=memory[{block_number}[0]],
+                        target_contract_address=memory[{target_contract_address}[0]]
+                    ).err_code;
                     "
                 )
             }
-            ProtostarHint::Warp { blk_timestamp, target_contract_address, err_code } => {
+            ProtostarHint::StopRoll { target_contract_address, err_code } => {
                 writedoc!(
                     f,
                     "
-                    memory{err_code} = warp(blk_timestamp=memory[{blk_timestamp}[0]], \
-                     target_contract_address=memory[{target_contract_address}[0]]).err_code; 
+                    memory{err_code} = stop_roll(
+                        target_contract_address=memory[{target_contract_address}[0]]
+                    ).err_code;
+                    "
+                )
+            }
+            ProtostarHint::StartWarp { block_timestamp, target_contract_address, err_code } => {
+                writedoc!(
+                    f,
+                    "
+                    memory{err_code} = start_warp(
+                        block_timestamp=memory[{block_timestamp}[0]],
+                        target_contract_address=memory[{target_contract_address}[0]]
+                     ).err_code;
+                    "
+                )
+            }
+            ProtostarHint::StopWarp { target_contract_address, err_code } => {
+                writedoc!(
+                    f,
+                    "
+                    memory{err_code} = stop_warp(
+                        target_contract_address=memory[{target_contract_address}[0]]
+                     ).err_code;
                     "
                 )
             }
@@ -1107,7 +1150,6 @@ impl Display for ProtostarHint {
                 ResOperandFormatter(start),
                 ResOperandFormatter(end),
             ),
-
         }
     }
 }
