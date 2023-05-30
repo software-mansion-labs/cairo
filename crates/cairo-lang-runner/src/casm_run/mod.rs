@@ -6,7 +6,7 @@ use ark_ff::fields::{Fp256, MontBackend, MontConfig};
 use ark_ff::{Field, PrimeField};
 use ark_std::UniformRand;
 use cairo_felt::{felt_str as felt252_str, Felt252, PRIME_STR};
-use cairo_lang_casm::hints::{CoreHint, DeprecatedHint, Hint, StarknetHint};
+use cairo_lang_casm::hints::{CoreHint, DeprecatedHint, Hint, StarknetHint, ProtostarHint};
 use cairo_lang_casm::instructions::Instruction;
 use cairo_lang_casm::operand::{
     BinOpOperand, CellRef, DerefOrImmediate, Operation, Register, ResOperand,
@@ -717,20 +717,6 @@ impl HintProcessor for CairoHintProcessor<'_> {
                     panic!("Unknown selector for system call!");
                 }
             }
-            &Hint::StartRoll { .. } => todo!(),
-            &Hint::StartWarp { .. } => todo!(),
-            &Hint::StopRoll { .. } => todo!(),
-            &Hint::StopWarp { .. } => todo!(),
-            &Hint::Declare { .. } => todo!(),
-            &Hint::DeclareCairo0 { .. } => todo!(),
-            &Hint::StartPrank { .. } => todo!(),
-            &Hint::StopPrank { .. } => todo!(),
-            &Hint::Invoke { .. } => todo!(),
-            &Hint::MockCall { .. } => todo!(),
-            &Hint::Deploy { .. } => todo!(),
-            &Hint::Prepare { .. } => todo!(),
-            &Hint::Call { .. } => todo!(),
-            &Hint::Print { .. } => todo!(),
             StarknetHint::SetBlockNumber { value } => {
                 self.starknet_state.exec_info.block_info.block_number = get_val(vm, value)?;
             }
@@ -1306,8 +1292,10 @@ fn execute_protostar_hint(
     hint: &cairo_lang_casm::hints::ProtostarHint,
 ) -> Result<(), HintError> {
     match hint {
-        &ProtostarHint::Roll { .. } => todo!(),
-        &ProtostarHint::Warp { .. } => todo!(),
+        &ProtostarHint::StartRoll { .. } => todo!(),
+        &ProtostarHint::StopRoll { .. } => todo!(),
+        &ProtostarHint::StartWarp { .. } => todo!(),
+        &ProtostarHint::StopWarp { .. } => todo!(),
         &ProtostarHint::Declare { .. } => todo!(),
         &ProtostarHint::DeclareCairo0 { .. } => todo!(),
         &ProtostarHint::StartPrank { .. } => todo!(),

@@ -269,6 +269,7 @@ pub fn starknet_compile(
         &crate_path,
         contract_path.as_deref(),
         if let Some(config) = config { config } else { CompilerConfig::default() },
+        Some(vec![])
     )?;
     validate_compatible_sierra_version(
         &contract,
