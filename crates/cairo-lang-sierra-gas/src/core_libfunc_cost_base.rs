@@ -321,7 +321,9 @@ pub fn core_libfunc_cost(
         CoreConcreteLibfunc::StarkNet(libfunc) => {
             starknet_libfunc_cost_base(libfunc).into_iter().map(BranchCost::from).collect()
         }
-        CoreConcreteLibfunc::Cheatcodes(libfunc) => cheatcodes_libfunc_cost_base(ops, libfunc),
+        CoreConcreteLibfunc::Cheatcodes(libfunc) => {
+            cheatcodes_libfunc_cost_base(libfunc).into_iter().map(BranchCost::from).collect()
+        },
         CoreConcreteLibfunc::Nullable(libfunc) => match libfunc {
             NullableConcreteLibfunc::Null(_) => vec![steps(0).into()],
             NullableConcreteLibfunc::NullableFromBox(_) => vec![steps(0).into()],
