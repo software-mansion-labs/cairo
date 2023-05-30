@@ -807,7 +807,6 @@ fn execute_core_hint_base(
 // TODO this code comes from cairo/crates/cairo-lang-protostar/ but that package uses
 // cairo-lang-runner (current pkg), so this results in cyclic deps
 // we should definitely avoid code duplication
-// 
 
 use std::sync::Arc;
 use std::{i64, str};
@@ -907,7 +906,8 @@ fn execute_protostar_hint(
         ProtostarHint::Declare { contract, result, err_code } => {
             let contract_value = get_val(vm, contract)?;
 
-            let contract_value_as_short_str = as_cairo_short_string(&contract_value).expect("conversion to short string failed");
+            let contract_value_as_short_str =
+                as_cairo_short_string(&contract_value).expect("conversion to short string failed");
             let path_from_config = protostar_test_config
                 .contracts_paths
                 .get(&contract_value_as_short_str)
@@ -919,7 +919,9 @@ fn execute_protostar_hint(
             let contract_path = PathBuf::from(path_from_config);
             // cairo => sierra
             let sierra_contract_class = compile_from_resolved_dependencies(
-                Path::new(contract_path.to_str().unwrap()).to_str().expect("converting contract path to string failed"),
+                Path::new(contract_path.to_str().unwrap())
+                    .to_str()
+                    .expect("converting contract path to string failed"),
                 None,
                 CompilerConfig { ..CompilerConfig::default() },
                 None,
@@ -962,7 +964,8 @@ fn execute_protostar_hint(
 
             insert_value_to_cellref!(vm, result, Felt252::from(class_hash_int))?;
             // TODO https://github.com/software-mansion/protostar/issues/2024
-            // in case of errors above, consider not panicking, set an error and return it here instead 
+            // in case of errors above, consider not panicking, set an error and return it here
+            // instead
             insert_value_to_cellref!(vm, err_code, Felt252::from(0))?;
             Ok(())
         }
