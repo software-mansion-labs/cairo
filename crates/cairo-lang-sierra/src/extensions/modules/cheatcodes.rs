@@ -344,7 +344,7 @@ impl NoGenericArgsGenericLibfunc for StopPrankLibFunc {
                     ap_change: SierraApChange::Known { new_vars_only: false },
                 },
             ],
-            fallthrough: 0,
+            fallthrough: Some(0),
         })
     }
 }

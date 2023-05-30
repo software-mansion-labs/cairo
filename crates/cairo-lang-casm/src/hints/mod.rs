@@ -38,6 +38,7 @@ impl Display for Hint {
         match self {
             Hint::Core(hint) => hint.fmt(f),
             Hint::Starknet(hint) => hint.fmt(f),
+            Hint::Protostar(hint) => hint.fmt(f),
         }
     }
 }
