@@ -299,12 +299,10 @@ pub fn collect_tests(
 
     let sierra_program = replace_sierra_ids_in_program(db, &sierra_program);
 
-    let mut builtins2 = vec![];
-    if let Some(unwrapped_builtins) = builtins {
-        builtins2 = unwrapped_builtins.iter().map(|s| s.to_string()).collect();
-    }
+    let builtins = builtins
+        .map_or_else(|| Vec::new(), |builtins| builtins.iter().map(|s| s.to_string()).collect());
 
-    validate_tests(sierra_program.clone(), &collected_tests, builtins2)
+    validate_tests(sierra_program.clone(), &collected_tests, builtins)
         .context("Test validation failed")?;
 
     if let Some(path) = output_path {
