@@ -31,7 +31,7 @@ fn compile_starknet_contract_to_sierra_from_path(
     input_path: &str,
     output_path: Option<&str>,
     maybe_cairo_paths: Option<Vec<&str>>,
-) -> PyResult<String> {
+) -> PyResult<Option<String>> {
     ensure_path_is_dir(input_path)
         .map_err(|e| PyErr::new::<RuntimeError, _>(format!("{:?}", e)))?;
     let sierra = starknet_cairo_to_sierra(input_path, maybe_cairo_paths)
@@ -42,7 +42,7 @@ fn compile_starknet_contract_to_sierra_from_path(
             PyErr::new::<RuntimeError, _>(format!("Failed to write output: {:?}", e))
         })?;
     }
-    Ok(sierra)
+    Ok(Some(sierra))
 }
 
 fn starknet_cairo_to_sierra(
@@ -66,7 +66,7 @@ fn compile_starknet_contract_to_casm_from_path(
     input_path: &str,
     output_path: Option<&str>,
     maybe_cairo_paths: Option<Vec<&str>>,
-) -> PyResult<String> {
+) -> PyResult<Option<String>> {
     ensure_path_is_dir(input_path)
         .map_err(|e| PyErr::new::<RuntimeError, _>(format!("{:?}", e)))?;
     let casm = starknet_cairo_to_casm(input_path, maybe_cairo_paths)
@@ -77,7 +77,7 @@ fn compile_starknet_contract_to_casm_from_path(
             PyErr::new::<RuntimeError, _>(format!("Failed to write output: {:?}", e))
         })?;
     }
-    Ok(casm)
+    Ok(Some(casm))
 }
 
 fn starknet_sierra_to_casm(sierra: &str) -> Result<String, anyhow::Error> {
@@ -105,17 +105,9 @@ fn starknet_cairo_to_casm(
 fn compile_starknet_contract_sierra_to_casm_from_path(
     input_path: &str,
     output_path: Option<&str>,
-) -> PyResult<String> {
+) -> PyResult<Option<String>> {
     let sierra = fs::read_to_string(input_path).expect("Could not read file!");
-    compile_starknet_contract_sierra_to_casm_from_sierra_code(&sierra, output_path)
-}
-
-#[pyfunction]
-fn compile_starknet_contract_sierra_to_casm_from_sierra_code(
-    sierra_compiled: &str,
-    output_path: Option<&str>,
-) -> PyResult<String> {
-    let casm = starknet_sierra_to_casm(sierra_compiled)
+    let casm = starknet_sierra_to_casm(&sierra)
         .map_err(|e| PyErr::new::<RuntimeError, _>(format!("{:?}", e)))?;
 
     if let Some(path) = output_path {
@@ -123,18 +115,18 @@ fn compile_starknet_contract_sierra_to_casm_from_sierra_code(
             PyErr::new::<RuntimeError, _>(format!("Failed to write output: {:?}", e))
         })?;
     }
-    Ok(casm)
+    Ok(Some(casm))
 }
 
-// returns tuple[sierra if no output_path, list[test_name, test_config]]
+// returns tuple[sierra, list[test_name, test_config]]
 #[pyfunction]
 fn collect_tests(
     input_path: String,
     output_path: Option<String>,
     maybe_cairo_paths: Option<Vec<String>>,
     maybe_builtins: Option<Vec<String>>,
-) -> PyResult<(Option<String>, Vec<CollectedTest>)> {
-    let (sierra_code, collected) = internal_collect_tests(
+) -> PyResult<(String, Vec<CollectedTest>)> {
+    let (sierra_program, collected) = internal_collect_tests(
         &input_path,
         output_path.as_ref(),
         maybe_cairo_paths.as_ref().map(|a| a.iter().map(|b| b).collect::<Vec<&String>>()),
@@ -148,7 +140,7 @@ fn collect_tests(
     })?;
     let external_collected = collected.iter().map(|c| (c.name.clone(), c.available_gas)).collect();
 
-    Ok((sierra_code, external_collected))
+    Ok((sierra_program.to_string(), external_collected))
 }
 
 #[pyfunction]
@@ -196,7 +188,6 @@ fn cairo_python_bindings(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(compile_starknet_contract_to_casm_from_path))?;
     m.add_wrapped(wrap_pyfunction!(compile_starknet_contract_to_sierra_from_path))?;
     m.add_wrapped(wrap_pyfunction!(compile_starknet_contract_sierra_to_casm_from_path))?;
-    m.add_wrapped(wrap_pyfunction!(compile_starknet_contract_sierra_to_casm_from_sierra_code))?;
     m.add_wrapped(wrap_pyfunction!(collect_tests))?;
     m.add_wrapped(wrap_pyfunction!(compile_protostar_sierra_to_casm))?;
     m.add_wrapped(wrap_pyfunction!(compile_protostar_sierra_to_casm_from_path))?;
