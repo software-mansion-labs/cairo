@@ -33,32 +33,32 @@ impl BoolPrintImpl of PrintTrait::<bool> {
 
 impl ContractAddressPrintImpl of PrintTrait::<starknet::ContractAddress> {
     fn print(self: starknet::ContractAddress) {
-        self.into().print();
+        Into::<_, felt252>::into(self).print();
     }
 }
 
 impl U8PrintImpl of PrintTrait::<u8> {
     fn print(self: u8) {
-        self.into().print();
+        Into::<_, felt252>::into(self).print();
     }
 }
 
 impl U64PrintImpl of PrintTrait::<u64> {
     fn print(self: u64) {
-        self.into().print();
+        Into::<_, felt252>::into(self).print();
     }
 }
 
 impl U128PrintImpl of PrintTrait::<u128> {
     fn print(self: u128) {
-        self.into().print();
+        Into::<_, felt252>::into(self).print();
     }
 }
 
 impl U256PrintImpl of PrintTrait::<u256> {
     fn print(self: u256) {
-        self.low.into().print();
-        self.high.into().print();
+        Into::<_, felt252>::into(self.low).print();
+        Into::<_, felt252>::into(self.high).print();
     }
 }
 
