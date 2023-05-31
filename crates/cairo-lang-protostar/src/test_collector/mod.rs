@@ -6,17 +6,16 @@ use anyhow::{anyhow, Context, Result};
 use cairo_felt::Felt252;
 use cairo_lang_compiler::db::RootDatabase;
 use cairo_lang_compiler::diagnostics::DiagnosticsReporter;
-use cairo_lang_compiler::project::setup_project;
 use cairo_lang_debug::DebugWithDb;
 use cairo_lang_defs::ids::{FreeFunctionId, FunctionWithBodyId, ModuleItemId};
 use cairo_lang_defs::plugin::PluginDiagnostic;
 use cairo_lang_diagnostics::ToOption;
-use cairo_lang_filesystem::cfg::{CfgSet, Cfg};
+use cairo_lang_filesystem::cfg::{Cfg, CfgSet};
 use cairo_lang_filesystem::ids::CrateId;
+use cairo_lang_lowering::ids::ConcreteFunctionWithBodyId;
 use cairo_lang_semantic::db::SemanticGroup;
 use cairo_lang_semantic::items::functions::GenericFunctionId;
 use cairo_lang_semantic::{ConcreteFunction, FunctionLongId};
-use cairo_lang_lowering::ids::ConcreteFunctionWithBodyId;
 use cairo_lang_sierra::extensions::enm::EnumType;
 use cairo_lang_sierra::extensions::NamedType;
 use cairo_lang_sierra::program::{GenericArg, Program};
@@ -24,14 +23,15 @@ use cairo_lang_sierra_generator::db::SierraGenGroup;
 use cairo_lang_sierra_generator::replace_ids::replace_sierra_ids_in_program;
 use cairo_lang_starknet::plugin::StarkNetPlugin;
 use cairo_lang_syntax::attribute::structured::{Attribute, AttributeArg, AttributeArgVariant};
-use cairo_lang_syntax::node::db::SyntaxGroup;
 use cairo_lang_syntax::node::ast;
-use cairo_lang_utils::OptionHelper;
+use cairo_lang_syntax::node::db::SyntaxGroup;
 use cairo_lang_test_runner::plugin::TestPlugin;
+use cairo_lang_utils::OptionHelper;
 use itertools::Itertools;
 use num_traits::ToPrimitive;
 
 use crate::casm_generator::{SierraCasmGenerator, TestConfig as TestConfigInternal};
+use crate::setup_project_without_cairo_project_toml;
 
 /// Expectation for a panic case.
 pub enum PanicExpectation {
@@ -214,7 +214,7 @@ fn extract_panic_values(db: &dyn SyntaxGroup, attr: &Attribute) -> Option<Vec<Fe
 pub fn collect_tests(
     input_path: &String,
     output_path: Option<&String>,
-    maybe_cairo_paths: Option<Vec<&String>>,
+    maybe_cairo_paths: Option<Vec<(&String, &String)>>,
     maybe_builtins: Option<Vec<&String>>,
 ) -> Result<(Program, Vec<TestConfigInternal>)> {
     // code taken from crates/cairo-lang-test-runner/src/lib.rs
@@ -227,14 +227,23 @@ pub fn collect_tests(
         b.build()?
     };
 
-    let main_crate_ids = setup_project(db, Path::new(&input_path))
-        .with_context(|| format!("Failed to setup project for path({})", input_path))?;
+    let cairo_paths = match maybe_cairo_paths {
+        Some(paths) => paths,
+        None => vec![],
+    };
+    let main_crate_name = match cairo_paths.iter().find(|(path, _crate_name)| **path == *input_path)
+    {
+        Some((_crate_path, crate_name)) => crate_name,
+        None => "",
+    };
 
-    if let Some(cairo_paths) = maybe_cairo_paths {
-        for cairo_path in cairo_paths {
-            setup_project(db, Path::new(cairo_path))
-                .with_context(|| format!("Failed to add linked library ({})", input_path))?;
-        }
+    let main_crate_ids =
+        setup_project_without_cairo_project_toml(db, Path::new(&input_path), main_crate_name)
+            .with_context(|| format!("Failed to setup project for path({})", input_path))?;
+
+    for (cairo_path, crate_name) in cairo_paths {
+        setup_project_without_cairo_project_toml(db, Path::new(cairo_path), crate_name)
+            .with_context(|| format!("Failed to add linked library ({})", input_path))?;
     }
 
     if DiagnosticsReporter::stderr().check(db) {
@@ -245,11 +254,10 @@ pub fn collect_tests(
     }
     let all_tests = find_all_tests(db, main_crate_ids);
 
-    let z : Vec<ConcreteFunctionWithBodyId> = all_tests
+    let z: Vec<ConcreteFunctionWithBodyId> = all_tests
         .iter()
-        .flat_map(|(func_id, _cfg)| {
-            ConcreteFunctionWithBodyId::from_no_generics_free(db, *func_id)
-        }).collect();
+        .flat_map(|(func_id, _cfg)| ConcreteFunctionWithBodyId::from_no_generics_free(db, *func_id))
+        .collect();
 
     let sierra_program = db
         .get_sierra_program_for_functions(z)

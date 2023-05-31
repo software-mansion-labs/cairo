@@ -100,7 +100,7 @@ pub fn compile_path(
 /// Runs StarkNet contract compiler on the specified contract.
 /// If no contract was specified, verify that there is only one.
 /// Otherwise, return an error.
-fn compile_contract_in_prepared_db(
+pub fn compile_contract_in_prepared_db(
     db: &mut RootDatabase,
     contract_path: Option<&str>,
     main_crate_ids: Vec<CrateId>,
