@@ -6,7 +6,7 @@ use ark_ff::fields::{Fp256, MontBackend, MontConfig};
 use ark_ff::{Field, PrimeField};
 use ark_std::UniformRand;
 use cairo_felt::{felt_str as felt252_str, Felt252, PRIME_STR};
-use cairo_lang_casm::hints::{CoreHint, DeprecatedHint, Hint, StarknetHint, ProtostarHint};
+use cairo_lang_casm::hints::{CoreHint, DeprecatedHint, Hint, ProtostarHint, StarknetHint};
 use cairo_lang_casm::instructions::Instruction;
 use cairo_lang_casm::operand::{
     BinOpOperand, CellRef, DerefOrImmediate, Operation, Register, ResOperand,
@@ -315,7 +315,7 @@ impl HintProcessor for CairoHintProcessor<'_> {
             }
             Hint::Protostar(hint) => {
                 return execute_protostar_hint(vm, exec_scopes, hint);
-            },
+            }
             Hint::Starknet(hint) => hint,
         };
         match hint {

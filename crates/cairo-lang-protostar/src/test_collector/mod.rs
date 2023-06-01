@@ -14,7 +14,6 @@ use cairo_lang_diagnostics::ToOption;
 use cairo_lang_filesystem::cfg::{Cfg, CfgSet};
 use cairo_lang_filesystem::ids::CrateId;
 use cairo_lang_lowering::ids::ConcreteFunctionWithBodyId;
-use cairo_lang_runner::Arg::Array;
 use cairo_lang_semantic::db::SemanticGroup;
 use cairo_lang_semantic::items::functions::GenericFunctionId;
 use cairo_lang_semantic::{ConcreteFunction, FunctionLongId};
