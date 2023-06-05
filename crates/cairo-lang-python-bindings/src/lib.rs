@@ -1,10 +1,12 @@
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::Context;
 use cairo_lang_compiler::CompilerConfig;
 use cairo_lang_protostar::casm_generator::TestConfig;
-use cairo_lang_protostar::test_collector::collect_tests as internal_collect_tests;
+use cairo_lang_protostar::test_collector::{
+    collect_tests as internal_collect_tests, LinkedLibrary,
+};
 use cairo_lang_protostar::{build_protostar_casm_from_sierra, compile_from_resolved_dependencies};
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use cairo_lang_starknet::contract_class::ContractClass;
@@ -126,21 +128,26 @@ fn compile_starknet_contract_sierra_to_casm_from_sierra_code(
     Ok(casm)
 }
 
+fn build_linked_libraries(cairo_paths: Vec<(&str, &str)>) -> Vec<LinkedLibrary> {
+    cairo_paths
+        .into_iter()
+        .map(|(path, name)| LinkedLibrary { name: name.to_string(), path: PathBuf::from(path) })
+        .collect()
+}
+
 // returns tuple[sierra, list[test_name, test_config]]
 #[pyfunction]
 fn collect_tests(
-    input_path: String,
-    output_path: Option<String>,
-    maybe_cairo_paths: Option<Vec<(String, String)>>,
-    maybe_builtins: Option<Vec<String>>,
+    input_path: &str,
+    output_path: Option<&str>,
+    maybe_cairo_paths: Option<Vec<(&str, &str)>>,
+    maybe_builtins: Option<Vec<&str>>,
 ) -> PyResult<(String, Vec<CollectedTest>)> {
     let (sierra_program, collected) = internal_collect_tests(
         &input_path,
-        output_path.as_ref(),
-        maybe_cairo_paths
-            .as_ref()
-            .map(|a| a.iter().map(|(b, c)| (b, c)).collect::<Vec<(&String, &String)>>()),
-        maybe_builtins.as_ref().map(|a| a.iter().map(|b| b).collect::<Vec<&String>>()),
+        output_path.as_deref(),
+        maybe_cairo_paths.map(|cairo_paths| build_linked_libraries(cairo_paths)),
+        maybe_builtins.as_ref().map(|v| v.iter().map(|&s| s).collect()),
     )
     .map_err(|e| {
         PyErr::new::<RuntimeError, _>(format!(

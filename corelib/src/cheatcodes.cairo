@@ -41,7 +41,7 @@ impl RevertedTransactionImpl of RevertedTransactionTrait {
 
 extern fn invoke_impl(
     contract_address: felt252, function_name: felt252, calldata: @Array::<felt252>
-) -> Result::<(), Array::<felt252>> nopanic;
+) -> Result::<(), Array<felt252>> nopanic;
 
 fn invoke(
     contract_address: felt252, function_name: felt252, calldata: @Array::<felt252>
@@ -69,7 +69,7 @@ extern fn deploy_impl(
     prepared_contract_address: felt252,
     prepared_class_hash: felt252,
     prepared_constructor_calldata: @Array::<felt252>
-) -> Result::<felt252, Array::<felt252>> nopanic;
+) -> Result::<felt252, Array<felt252>> nopanic;
 
 fn deploy(prepared_contract: PreparedContract) -> Result::<felt252, RevertedTransaction> nopanic {
     let PreparedContract{contract_address, class_hash, constructor_calldata } = prepared_contract;
@@ -166,15 +166,15 @@ fn deploy_contract_cairo0(
 
 extern fn call_impl(
     contract: felt252, function_name: felt252, calldata: @Array::<felt252>
-) -> Result::<Array::<felt252>, Array::<felt252>> nopanic;
+) -> Result::<Array<felt252>, Array<felt252>> nopanic;
 
 
 fn call(
     contract: felt252, function_name: felt252, calldata: @Array::<felt252>
-) -> Result::<Array::<felt252>, RevertedTransaction> nopanic {
+) -> Result::<Array<felt252>, RevertedTransaction> nopanic {
     match call_impl(contract, function_name, calldata) {
-        Result::Ok(x) => Result::<Array::<felt252>, RevertedTransaction>::Ok(x),
-        Result::Err(x) => Result::<Array::<felt252>,
+        Result::Ok(x) => Result::<Array<felt252>, RevertedTransaction>::Ok(x),
+        Result::Err(x) => Result::<Array<felt252>,
         RevertedTransaction>::Err(RevertedTransaction { panic_data: x,  })
     }
 }

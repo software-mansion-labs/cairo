@@ -1,11 +1,12 @@
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::{anyhow, Context, Result};
 use cairo_felt::Felt252;
 use cairo_lang_compiler::db::RootDatabase;
 use cairo_lang_compiler::diagnostics::DiagnosticsReporter;
+use cairo_lang_compiler::project::setup_project;
 use cairo_lang_debug::DebugWithDb;
 use cairo_lang_defs::ids::{FreeFunctionId, FunctionWithBodyId, ModuleItemId};
 use cairo_lang_defs::plugin::PluginDiagnostic;
@@ -34,6 +35,7 @@ use crate::casm_generator::{SierraCasmGenerator, TestConfig as TestConfigInterna
 use crate::setup_project_without_cairo_project_toml;
 
 /// Expectation for a panic case.
+#[derive(Debug)]
 pub enum PanicExpectation {
     /// Accept any panic value.
     Any,
@@ -42,6 +44,7 @@ pub enum PanicExpectation {
 }
 
 /// Expectation for a result of a test.
+#[derive(Debug)]
 pub enum TestExpectation {
     /// Running the test should not panic.
     Success,
@@ -50,6 +53,7 @@ pub enum TestExpectation {
 }
 
 /// The configuration for running a single test.
+#[derive(Debug)]
 pub struct TestConfig {
     /// The amount of gas the test requested.
     pub available_gas: Option<usize>,
@@ -210,12 +214,19 @@ fn extract_panic_values(db: &dyn SyntaxGroup, attr: &Attribute) -> Option<Vec<Fe
         .collect::<Option<Vec<_>>>()
 }
 
+/// Represents a dependency of a Cairo project
+#[derive(Debug, Clone)]
+pub struct LinkedLibrary {
+    pub name: String,
+    pub path: PathBuf,
+}
+
 // returns tuple[sierra if no output_path, list[test_name, test_config]]
 pub fn collect_tests(
-    input_path: &String,
-    output_path: Option<&String>,
-    maybe_cairo_paths: Option<Vec<(&String, &String)>>,
-    maybe_builtins: Option<Vec<&String>>,
+    input_path: &str,
+    output_path: Option<&str>,
+    linked_libraries: Option<Vec<LinkedLibrary>>,
+    builtins: Option<Vec<&str>>,
 ) -> Result<(Program, Vec<TestConfigInternal>)> {
     // code taken from crates/cairo-lang-test-runner/src/lib.rs
     let db = &mut {
@@ -227,23 +238,18 @@ pub fn collect_tests(
         b.build()?
     };
 
-    let cairo_paths = match maybe_cairo_paths {
-        Some(paths) => paths,
-        None => vec![],
-    };
-    let main_crate_name = match cairo_paths.iter().find(|(path, _crate_name)| **path == *input_path)
-    {
-        Some((_crate_path, crate_name)) => crate_name,
-        None => "",
-    };
+    let main_crate_ids = setup_project(db, Path::new(&input_path))
+        .with_context(|| format!("Failed to setup project for path({})", input_path))?;
 
-    let main_crate_ids =
-        setup_project_without_cairo_project_toml(db, Path::new(&input_path), main_crate_name)
-            .with_context(|| format!("Failed to setup project for path({})", input_path))?;
-
-    for (cairo_path, crate_name) in cairo_paths {
-        setup_project_without_cairo_project_toml(db, Path::new(cairo_path), crate_name)
+    if let Some(linked_libraries) = linked_libraries {
+        for linked_library in linked_libraries {
+            setup_project_without_cairo_project_toml(
+                db,
+                &linked_library.path,
+                &linked_library.name,
+            )
             .with_context(|| format!("Failed to add linked library ({})", input_path))?;
+        }
     }
 
     if DiagnosticsReporter::stderr().check(db) {
@@ -292,10 +298,8 @@ pub fn collect_tests(
 
     let sierra_program = replace_sierra_ids_in_program(db, &sierra_program);
 
-    let mut builtins = vec![];
-    if let Some(unwrapped_builtins) = maybe_builtins {
-        builtins = unwrapped_builtins.iter().map(|s| s.to_string()).collect();
-    }
+    let builtins = builtins
+        .map_or_else(|| Vec::new(), |builtins| builtins.iter().map(|s| s.to_string()).collect());
 
     validate_tests(sierra_program.clone(), &collected_tests, builtins)
         .context("Test validation failed")?;
