@@ -214,7 +214,7 @@ fn extract_panic_values(db: &dyn SyntaxGroup, attr: &Attribute) -> Option<Vec<Fe
         .collect::<Option<Vec<_>>>()
 }
 
-// TODO docs
+/// Represents a dependency of a Cairo project
 #[derive(Debug, Clone)]
 pub struct LinkedLibrary {
     pub name: String,
