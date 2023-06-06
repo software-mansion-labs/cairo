@@ -1,7 +1,6 @@
-use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, Result};
 use cairo_lang_defs::db::{DefsDatabase, DefsGroup, HasMacroPlugins};
 use cairo_lang_defs::plugin::MacroPlugin;
 use cairo_lang_filesystem::cfg::CfgSet;
@@ -70,7 +69,6 @@ pub struct RootDatabaseBuilder {
     detect_corelib: bool,
     project_config: Option<Box<ProjectConfig>>,
     cfg_set: Option<CfgSet>,
-    corelib_path: Option<PathBuf>,
 }
 
 impl RootDatabaseBuilder {
@@ -80,17 +78,11 @@ impl RootDatabaseBuilder {
             detect_corelib: false,
             project_config: None,
             cfg_set: None,
-            corelib_path: None,
         }
     }
 
     pub fn with_semantic_plugin(&mut self, plugin: Arc<dyn SemanticPlugin>) -> &mut Self {
         self.plugins.push(plugin);
-        self
-    }
-
-    pub fn with_corelib_path(&mut self, corelib_path: PathBuf) -> &mut Self {
-        self.corelib_path = Some(corelib_path);
         self
     }
 
@@ -123,14 +115,6 @@ impl RootDatabaseBuilder {
 
         if let Some(cfg_set) = &self.cfg_set {
             db.use_cfg(cfg_set);
-        }
-
-        if self.detect_corelib && self.corelib_path.is_some() {
-            bail!("Argument detect_corelib cannot be used if corelib_path is provided.");
-        }
-
-        if let Some(corelib_path) = self.corelib_path.clone() {
-            init_dev_corelib(&mut db, corelib_path);
         }
 
         if self.detect_corelib {
