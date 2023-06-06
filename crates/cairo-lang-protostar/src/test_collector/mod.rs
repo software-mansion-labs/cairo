@@ -244,13 +244,9 @@ pub fn collect_tests(
     init_dev_corelib(
         db,
         corelib_path.map_or_else(
-            || {
-                detect_corelib()
-                    .ok_or_else(|| anyhow!("Failed to find development corelib"))
-                    .unwrap()
-            },
-            |corelib_path| corelib_path.into(),
-        ),
+            || detect_corelib().ok_or_else(|| anyhow!("Failed to load development corelib")),
+            |corelib_path| Ok(corelib_path.into()),
+        )?,
     );
 
     let main_crate_ids = setup_project(db, Path::new(&input_path))
