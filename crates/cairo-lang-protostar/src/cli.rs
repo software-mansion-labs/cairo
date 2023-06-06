@@ -20,7 +20,7 @@ fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let builtins = vec!["GasBuiltin", "Pedersen", "RangeCheck", "bitwise", "ec_op"];
 
-    let (sierra_program, collected) = collect_tests(&args.file, None, None, Some(builtins), None)?;
+    let (sierra_program, collected) = collect_tests(&args.file, None, None, Some(builtins))?;
 
     let sierra_code = sierra_program.to_string();
 

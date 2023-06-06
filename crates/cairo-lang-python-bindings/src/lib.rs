@@ -148,7 +148,6 @@ fn collect_tests(
         output_path.as_deref(),
         maybe_cairo_paths.map(|cairo_paths| build_linked_libraries(cairo_paths)),
         maybe_builtins.as_ref().map(|v| v.iter().map(|&s| s).collect()),
-        None,
     )
     .map_err(|e| {
         PyErr::new::<RuntimeError, _>(format!(
