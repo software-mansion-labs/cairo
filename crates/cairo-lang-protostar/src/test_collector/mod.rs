@@ -6,14 +6,17 @@ use anyhow::{anyhow, Context, Result};
 use cairo_felt::Felt252;
 use cairo_lang_compiler::db::RootDatabase;
 use cairo_lang_compiler::diagnostics::DiagnosticsReporter;
-use cairo_lang_compiler::project::setup_project;
+use cairo_lang_compiler::project::{get_main_crate_ids_from_project, setup_project};
 use cairo_lang_debug::DebugWithDb;
 use cairo_lang_defs::ids::{FreeFunctionId, FunctionWithBodyId, ModuleItemId};
 use cairo_lang_defs::plugin::PluginDiagnostic;
 use cairo_lang_diagnostics::ToOption;
 use cairo_lang_filesystem::cfg::{Cfg, CfgSet};
-use cairo_lang_filesystem::ids::CrateId;
+use cairo_lang_filesystem::db::init_dev_corelib;
+use cairo_lang_filesystem::detect::detect_corelib;
+use cairo_lang_filesystem::ids::{CrateId, Directory};
 use cairo_lang_lowering::ids::ConcreteFunctionWithBodyId;
+use cairo_lang_project::ProjectConfig;
 use cairo_lang_semantic::db::SemanticGroup;
 use cairo_lang_semantic::items::functions::GenericFunctionId;
 use cairo_lang_semantic::{ConcreteFunction, FunctionLongId};
@@ -227,16 +230,24 @@ pub fn collect_tests(
     output_path: Option<&str>,
     linked_libraries: Option<Vec<LinkedLibrary>>,
     builtins: Option<Vec<&str>>,
+    corelib_path: Option<&str>,
 ) -> Result<(Program, Vec<TestConfigInternal>)> {
     // code taken from crates/cairo-lang-test-runner/src/lib.rs
     let db = &mut {
         let mut b = RootDatabase::builder();
-        b.detect_corelib();
         b.with_cfg(CfgSet::from_iter([Cfg::name("test")]));
         b.with_semantic_plugin(Arc::new(TestPlugin::default()));
         b.with_semantic_plugin(Arc::new(StarkNetPlugin::default()));
         b.build()?
     };
+
+    init_dev_corelib(
+        db,
+        corelib_path.map_or_else(
+            || detect_corelib().ok_or_else(|| anyhow!("Failed to load development corelib")),
+            |corelib_path| Ok(corelib_path.into()),
+        )?,
+    );
 
     let main_crate_ids = setup_project(db, Path::new(&input_path))
         .with_context(|| format!("Failed to setup project for path({})", input_path))?;
