@@ -6,7 +6,7 @@ use anyhow::{anyhow, Context, Result};
 use cairo_felt::Felt252;
 use cairo_lang_compiler::db::RootDatabase;
 use cairo_lang_compiler::diagnostics::DiagnosticsReporter;
-use cairo_lang_compiler::project::{get_main_crate_ids_from_project, setup_project};
+use cairo_lang_compiler::project::setup_project;
 use cairo_lang_debug::DebugWithDb;
 use cairo_lang_defs::ids::{FreeFunctionId, FunctionWithBodyId, ModuleItemId};
 use cairo_lang_defs::plugin::PluginDiagnostic;
@@ -14,9 +14,8 @@ use cairo_lang_diagnostics::ToOption;
 use cairo_lang_filesystem::cfg::{Cfg, CfgSet};
 use cairo_lang_filesystem::db::init_dev_corelib;
 use cairo_lang_filesystem::detect::detect_corelib;
-use cairo_lang_filesystem::ids::{CrateId, Directory};
+use cairo_lang_filesystem::ids::CrateId;
 use cairo_lang_lowering::ids::ConcreteFunctionWithBodyId;
-use cairo_lang_project::ProjectConfig;
 use cairo_lang_semantic::db::SemanticGroup;
 use cairo_lang_semantic::items::functions::GenericFunctionId;
 use cairo_lang_semantic::{ConcreteFunction, FunctionLongId};
@@ -228,7 +227,7 @@ pub struct LinkedLibrary {
 pub fn collect_tests(
     input_path: &str,
     output_path: Option<&str>,
-    linked_libraries: Option<Vec<LinkedLibrary>>,
+    linked_libraries: Option<&Vec<LinkedLibrary>>,
     builtins: Option<Vec<&str>>,
     corelib_path: Option<&str>,
 ) -> Result<(Program, Vec<TestConfigInternal>)> {
