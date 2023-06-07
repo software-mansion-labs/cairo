@@ -1286,6 +1286,7 @@ pub fn execute_core_hint(
     Ok(())
 }
 
+#[allow(unused)]
 fn execute_protostar_hint(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
