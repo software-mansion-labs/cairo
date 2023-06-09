@@ -66,7 +66,7 @@ pub fn build_start_spoof(
     }
 
     casm_build_extend! {casm_builder,
-        hint StartSpoof {
+        hint ProtostarHint::StartSpoof {
             contract_address: contract_address,
             version: version,
             set_version: set_version,
