@@ -54,7 +54,7 @@ pub struct TestEntrypoint {
     pub name: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct TestConfig {
     pub name: String,
     pub available_gas: Option<usize>,
