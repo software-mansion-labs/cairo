@@ -148,7 +148,7 @@ fn collect_tests(
     let (sierra_program, collected) = internal_collect_tests(
         input_path,
         output_path,
-        linked_libraries.as_ref(),
+        linked_libraries,
         maybe_builtins.as_ref().map(|v| v.iter().map(|&s| s).collect()),
         None,
     )
