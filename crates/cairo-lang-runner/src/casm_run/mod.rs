@@ -1,6 +1,8 @@
 use std::any::Any;
 use std::collections::HashMap;
 use std::ops::{Deref, Shl};
+use std::path::{Path, PathBuf};
+
 
 use ark_ff::fields::{Fp256, MontBackend, MontConfig};
 use ark_ff::{Field, PrimeField};
@@ -27,10 +29,102 @@ use dict_manager::DictManagerExecScope;
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, ToPrimitive, Zero};
+use blockifier::state::cached_state::CachedState;
+use blockifier::test_utils::DictStateReader;
+use cairo_lang_compiler::CompilerConfig;
+use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 
 use self::dict_manager::DictSquashExecScope;
 use crate::short_string::as_cairo_short_string;
-use crate::{Arg, RunResultValue, SierraCasmRunner};
+use crate::{Arg, ProtostarTestConfig, RunResultValue, SierraCasmRunner};
+
+// =========================================
+// TODO this code comes from cairo/crates/cairo-lang-protostar/ but that package uses
+// cairo-lang-runner (current pkg), so this results in cyclic deps
+// we should definitely avoid code duplication
+
+use std::sync::Arc;
+use std::{i64, str};
+
+use anyhow::Result;
+use blockifier::block_context::BlockContext;
+use blockifier::execution::contract_class::{
+    ContractClass as BlockifierContractClass, ContractClassV1,
+};
+use blockifier::transaction::account_transaction::AccountTransaction;
+use blockifier::transaction::transaction_utils_for_protostar::declare_tx_default;
+use blockifier::transaction::transactions::{DeclareTransaction, ExecutableTransaction};
+use cairo_lang_compiler::db::RootDatabase;
+use cairo_lang_compiler::project::{
+    get_main_crate_ids_from_project, setup_single_file_project,
+    update_crate_roots_from_project_config, ProjectError,
+};
+use cairo_lang_filesystem::ids::CrateId;
+use cairo_lang_project::{DeserializationError, ProjectConfig, ProjectConfigContent};
+use cairo_lang_semantic::db::SemanticGroup;
+use cairo_lang_starknet::contract_class::{compile_contract_in_prepared_db, ContractClass};
+use cairo_lang_starknet::plugin::StarkNetPlugin;
+use smol_str::SmolStr;
+
+pub fn build_project_config(
+    source_root: &Path,
+    crate_name: &str,
+) -> Result<ProjectConfig, DeserializationError> {
+    let base_path: PathBuf = source_root.to_str().ok_or(DeserializationError::PathError)?.into();
+    let crate_roots = HashMap::from([(SmolStr::from(crate_name), base_path.clone())]);
+    Ok(ProjectConfig { base_path, content: ProjectConfigContent { crate_roots }, corelib: None })
+}
+
+pub fn setup_project_without_cairo_project_toml(
+    db: &mut dyn SemanticGroup,
+    path: &Path,
+    crate_name: &str,
+) -> Result<Vec<CrateId>, ProjectError> {
+    if path.is_dir() {
+        match build_project_config(path, crate_name) {
+            Ok(config) => {
+                let main_crate_ids = get_main_crate_ids_from_project(db, &config);
+                update_crate_roots_from_project_config(db, config);
+                Ok(main_crate_ids)
+            }
+            _ => Err(ProjectError::LoadProjectError),
+        }
+    } else {
+        Ok(vec![setup_single_file_project(db, path)?])
+    }
+}
+
+fn compile_from_resolved_dependencies(
+    input_path: &str,
+    contract_path: Option<&str>,
+    compiler_config: CompilerConfig<'_>,
+    maybe_cairo_paths: Option<Vec<(&str, &str)>>,
+) -> Result<ContractClass> {
+    let mut db = RootDatabase::builder()
+        .detect_corelib()
+        .with_semantic_plugin(Arc::new(StarkNetPlugin::default()))
+        .build()?;
+
+    let cairo_paths = match maybe_cairo_paths {
+        Some(paths) => paths,
+        None => vec![],
+    };
+    let main_crate_name = match cairo_paths.iter().find(|(path, _crate_name)| **path == *input_path)
+    {
+        Some((_crate_path, crate_name)) => crate_name,
+        None => "",
+    };
+
+    let main_crate_ids =
+        setup_project_without_cairo_project_toml(&mut db, Path::new(&input_path), main_crate_name)?;
+    for (cairo_path, crate_name) in cairo_paths {
+        setup_project_without_cairo_project_toml(&mut db, Path::new(cairo_path), crate_name)?;
+    }
+
+    compile_contract_in_prepared_db(&mut db, contract_path, main_crate_ids, compiler_config)
+}
+
+// =========================================
 
 #[cfg(test)]
 mod test;
@@ -72,6 +166,8 @@ pub struct CairoHintProcessor<'a> {
     pub string_to_hint: HashMap<String, Hint>,
     // The starknet state.
     pub starknet_state: StarknetState,
+    protostar_test_config: Option<ProtostarTestConfig>,
+    blockifier_state: Option<CachedState<DictStateReader>>,
 }
 
 impl<'a> CairoHintProcessor<'a> {
@@ -79,6 +175,8 @@ impl<'a> CairoHintProcessor<'a> {
         runner: Option<&'a SierraCasmRunner>,
         instructions: Instructions,
         starknet_state: StarknetState,
+        protostar_test_config: Option<ProtostarTestConfig>,
+        blockifier_state: Option<CachedState<DictStateReader>>,
     ) -> Self {
         let mut hints_dict: HashMap<usize, Vec<HintParams>> = HashMap::new();
         let mut string_to_hint: HashMap<String, Hint> = HashMap::new();
@@ -99,7 +197,7 @@ impl<'a> CairoHintProcessor<'a> {
             }
             hint_offset += instruction.body.op_size();
         }
-        CairoHintProcessor { runner, hints_dict, string_to_hint, starknet_state }
+        CairoHintProcessor { runner, hints_dict, string_to_hint, starknet_state, protostar_test_config, blockifier_state }
     }
 }
 
@@ -314,7 +412,15 @@ impl HintProcessor for CairoHintProcessor<'_> {
                 return execute_core_hint_base(vm, exec_scopes, core_hint_base);
             }
             Hint::Protostar(hint) => {
-                return execute_protostar_hint(vm, exec_scopes, hint);
+                let blockifier_state = self
+                    .blockifier_state
+                    .as_mut()
+                    .expect("blockifier state is needed for executing hints");
+                let protostar_test_config = self
+                    .protostar_test_config
+                    .as_ref()
+                    .expect("Protostar test config is needed for executing hints");
+                return execute_protostar_hint(vm, exec_scopes, hint, blockifier_state, protostar_test_config);
             }
             Hint::Starknet(hint) => hint,
         };
@@ -536,6 +642,8 @@ impl HintProcessor for CairoHintProcessor<'_> {
                                     &[Arg::Array(values)],
                                     Some(*gas_counter),
                                     self.starknet_state.clone(),
+                                    None,
+                                    None,
                                 )
                                 .expect("Internal runner error.");
                             *gas_counter = res.gas_counter.unwrap().to_usize().unwrap();
@@ -628,6 +736,8 @@ impl HintProcessor for CairoHintProcessor<'_> {
                                 &[Arg::Array(values)],
                                 Some(*gas_counter),
                                 self.starknet_state.clone(),
+                                None,
+                                None,
                             )
                             .expect("Internal runner error.");
 
@@ -691,6 +801,8 @@ impl HintProcessor for CairoHintProcessor<'_> {
                                 &[Arg::Array(values)],
                                 Some(*gas_counter),
                                 self.starknet_state.clone(),
+                                None,
+                                None,
                             )
                             .expect("Internal runner error.");
                         *gas_counter = res.gas_counter.unwrap().to_usize().unwrap();
@@ -1291,13 +1403,80 @@ fn execute_protostar_hint(
     vm: &mut VirtualMachine,
     exec_scopes: &mut ExecutionScopes,
     hint: &cairo_lang_casm::hints::ProtostarHint,
+    blockifier_state: &mut CachedState<DictStateReader>,
+    protostar_test_config: &ProtostarTestConfig,
 ) -> Result<(), HintError> {
     match hint {
         &ProtostarHint::StartRoll { .. } => todo!(),
         &ProtostarHint::StopRoll { .. } => todo!(),
         &ProtostarHint::StartWarp { .. } => todo!(),
         &ProtostarHint::StopWarp { .. } => todo!(),
-        &ProtostarHint::Declare { .. } => todo!(),
+        ProtostarHint::Declare { contract, result, err_code } => {
+            let contract_value = get_val(vm, contract)?;
+
+            let contract_value_as_short_str =
+                as_cairo_short_string(&contract_value).expect("conversion to short string failed");
+            let path_from_config = protostar_test_config
+                .contracts_paths
+                .get(&contract_value_as_short_str)
+                .expect(&format!(
+                    "expected contract paths for given contract name: {}",
+                    &contract_value_as_short_str
+                ));
+
+            let contract_path = PathBuf::from(path_from_config);
+            // cairo => sierra
+            let sierra_contract_class = compile_from_resolved_dependencies(
+                Path::new(contract_path.to_str().unwrap())
+                    .to_str()
+                    .expect("converting contract path to string failed"),
+                None,
+                CompilerConfig { ..CompilerConfig::default() },
+                None,
+            )
+            .expect("cairo to sierra failed");
+
+            // sierra => casm
+            let casm_contract_class =
+                CasmContractClass::from_contract_class(sierra_contract_class, true)
+                    .expect("sierra to casm failed");
+            let casm_serialized =
+                serde_json::to_string_pretty(&casm_contract_class).expect("serialization failed");
+
+            let contract_class = ContractClassV1::try_from_json_string(&casm_serialized)
+                .expect("error reading contract class from json");
+            let contract_class = BlockifierContractClass::V1(contract_class);
+
+            let declare_tx = declare_tx_default();
+            let tx = DeclareTransaction {
+                tx: starknet_api::transaction::DeclareTransaction::V1(declare_tx),
+                contract_class: contract_class.clone(),
+            };
+            let account_tx = AccountTransaction::Declare(tx);
+            let block_context = &BlockContext::create_for_account_testing();
+
+            let actual_execution_info = account_tx
+                .execute(blockifier_state, block_context)
+                .expect("error executing transaction");
+
+            let class_hash = actual_execution_info
+                .validate_call_info
+                .as_ref()
+                .expect("error reading validate call info of transaction")
+                .call
+                .class_hash
+                .expect("error reading class hash of transaction");
+            let class_hash_int =
+                i64::from_str_radix(&class_hash.to_string().replace("0x", "")[..], 16)
+                    .expect("error converting hex string to int");
+
+            insert_value_to_cellref!(vm, result, Felt252::from(class_hash_int))?;
+            // TODO https://github.com/software-mansion/protostar/issues/2024
+            // in case of errors above, consider not panicking, set an error and return it here
+            // instead
+            insert_value_to_cellref!(vm, err_code, Felt252::from(0))?;
+            Ok(())
+        }
         &ProtostarHint::DeclareCairo0 { .. } => todo!(),
         &ProtostarHint::StartPrank { .. } => todo!(),
         &ProtostarHint::StopPrank { .. } => todo!(),
@@ -1365,6 +1544,8 @@ pub fn run_function<'a, 'b: 'a, Instructions: Iterator<Item = &'a Instruction> +
         context: RunFunctionContext<'_>,
     ) -> Result<(), Box<VirtualMachineError>>,
     starknet_state: StarknetState,
+    protostar_test_config: Option<ProtostarTestConfig>,
+    blockifier_state: Option<CachedState<DictStateReader>>,
 ) -> Result<RunFunctionRes, Box<VirtualMachineError>> {
     let data: Vec<MaybeRelocatable> = instructions
         .clone()
@@ -1372,8 +1553,7 @@ pub fn run_function<'a, 'b: 'a, Instructions: Iterator<Item = &'a Instruction> +
         .map(Felt252::from)
         .map(MaybeRelocatable::from)
         .collect();
-
-    let mut hint_processor = CairoHintProcessor::new(runner, instructions, starknet_state);
+    let mut hint_processor = CairoHintProcessor::new(runner, instructions, starknet_state, protostar_test_config, blockifier_state);
 
     let data_len = data.len();
     let program = Program {

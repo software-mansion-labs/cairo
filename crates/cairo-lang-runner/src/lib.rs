@@ -31,9 +31,17 @@ pub use casm_run::StarknetState;
 use itertools::chain;
 use num_traits::ToPrimitive;
 use thiserror::Error;
+use blockifier::state::cached_state::CachedState;
+use blockifier::test_utils::DictStateReader;
 
 pub mod casm_run;
 pub mod short_string;
+
+#[derive(Clone)]
+pub struct ProtostarTestConfig {
+    // name, path
+    pub contracts_paths: HashMap<String, String>,
+}
 
 #[derive(Debug, Error)]
 pub enum RunnerError {
@@ -139,6 +147,8 @@ impl SierraCasmRunner {
         args: &[Arg],
         available_gas: Option<usize>,
         starknet_state: StarknetState,
+        protostar_test_config: Option<ProtostarTestConfig>,
+        blockifier_state: Option<CachedState<DictStateReader>>,
     ) -> Result<RunResult, RunnerError> {
         let initial_gas = self.get_initial_available_gas(func, available_gas)?;
         let (entry_code, builtins) = self.create_entry_code(func, args, initial_gas)?;
@@ -166,6 +176,8 @@ impl SierraCasmRunner {
                 Ok(())
             },
             starknet_state,
+            protostar_test_config,
+            blockifier_state,
         )?;
         let mut results_data = self.get_results_data(func, &cells, ap)?;
         // Handling implicits.
