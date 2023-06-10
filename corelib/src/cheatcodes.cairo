@@ -209,7 +209,7 @@ impl TxInfoMockImpl of TxInfoMockTrait {
     }
 }
 
-fn setter_and_value<T>(option: Option<T>, default: T) -> (bool, T) {
+fn setter_and_value<T, impl TDrop: Drop::<T>>(option: Option<T>, default: T) -> (bool, T) {
     let is_set = option.is_some();
     let value = option.unwrap_or_else(default);
     (is_set, value)
