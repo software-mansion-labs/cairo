@@ -2,17 +2,44 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::ops::{Deref, Shl};
 use std::path::{Path, PathBuf};
+// =========================================
+// TODO this code comes from cairo/crates/cairo-lang-protostar/ but that package uses
+// cairo-lang-runner (current pkg), so this results in cyclic deps
+// we should definitely avoid code duplication
+use std::sync::Arc;
+use std::{i64, str};
 
-
+use anyhow::Result;
 use ark_ff::fields::{Fp256, MontBackend, MontConfig};
 use ark_ff::{Field, PrimeField};
 use ark_std::UniformRand;
+use blockifier::block_context::BlockContext;
+use blockifier::execution::contract_class::{
+    ContractClass as BlockifierContractClass, ContractClassV1,
+};
+use blockifier::state::cached_state::CachedState;
+use blockifier::test_utils::DictStateReader;
+use blockifier::transaction::account_transaction::AccountTransaction;
+use blockifier::transaction::transaction_utils_for_protostar::declare_tx_default;
+use blockifier::transaction::transactions::{DeclareTransaction, ExecutableTransaction};
 use cairo_felt::{felt_str as felt252_str, Felt252, PRIME_STR};
 use cairo_lang_casm::hints::{CoreHint, DeprecatedHint, Hint, ProtostarHint, StarknetHint};
 use cairo_lang_casm::instructions::Instruction;
 use cairo_lang_casm::operand::{
     BinOpOperand, CellRef, DerefOrImmediate, Operation, Register, ResOperand,
 };
+use cairo_lang_compiler::db::RootDatabase;
+use cairo_lang_compiler::project::{
+    get_main_crate_ids_from_project, setup_single_file_project,
+    update_crate_roots_from_project_config, ProjectError,
+};
+use cairo_lang_compiler::CompilerConfig;
+use cairo_lang_filesystem::ids::CrateId;
+use cairo_lang_project::{DeserializationError, ProjectConfig, ProjectConfigContent};
+use cairo_lang_semantic::db::SemanticGroup;
+use cairo_lang_starknet::casm_contract_class::CasmContractClass;
+use cairo_lang_starknet::contract_class::{compile_contract_in_prepared_db, ContractClass};
+use cairo_lang_starknet::plugin::StarkNetPlugin;
 use cairo_lang_utils::extract_matches;
 use cairo_vm::hint_processor::hint_processor_definition::{HintProcessor, HintReference};
 use cairo_vm::serde::deserialize_program::{
@@ -29,42 +56,11 @@ use dict_manager::DictManagerExecScope;
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, ToPrimitive, Zero};
-use blockifier::state::cached_state::CachedState;
-use blockifier::test_utils::DictStateReader;
-use cairo_lang_compiler::CompilerConfig;
-use cairo_lang_starknet::casm_contract_class::CasmContractClass;
+use smol_str::SmolStr;
 
 use self::dict_manager::DictSquashExecScope;
 use crate::short_string::as_cairo_short_string;
 use crate::{Arg, ProtostarTestConfig, RunResultValue, SierraCasmRunner};
-
-// =========================================
-// TODO this code comes from cairo/crates/cairo-lang-protostar/ but that package uses
-// cairo-lang-runner (current pkg), so this results in cyclic deps
-// we should definitely avoid code duplication
-
-use std::sync::Arc;
-use std::{i64, str};
-
-use anyhow::Result;
-use blockifier::block_context::BlockContext;
-use blockifier::execution::contract_class::{
-    ContractClass as BlockifierContractClass, ContractClassV1,
-};
-use blockifier::transaction::account_transaction::AccountTransaction;
-use blockifier::transaction::transaction_utils_for_protostar::declare_tx_default;
-use blockifier::transaction::transactions::{DeclareTransaction, ExecutableTransaction};
-use cairo_lang_compiler::db::RootDatabase;
-use cairo_lang_compiler::project::{
-    get_main_crate_ids_from_project, setup_single_file_project,
-    update_crate_roots_from_project_config, ProjectError,
-};
-use cairo_lang_filesystem::ids::CrateId;
-use cairo_lang_project::{DeserializationError, ProjectConfig, ProjectConfigContent};
-use cairo_lang_semantic::db::SemanticGroup;
-use cairo_lang_starknet::contract_class::{compile_contract_in_prepared_db, ContractClass};
-use cairo_lang_starknet::plugin::StarkNetPlugin;
-use smol_str::SmolStr;
 
 pub fn build_project_config(
     source_root: &Path,
@@ -197,7 +193,14 @@ impl<'a> CairoHintProcessor<'a> {
             }
             hint_offset += instruction.body.op_size();
         }
-        CairoHintProcessor { runner, hints_dict, string_to_hint, starknet_state, protostar_test_config, blockifier_state }
+        CairoHintProcessor {
+            runner,
+            hints_dict,
+            string_to_hint,
+            starknet_state,
+            protostar_test_config,
+            blockifier_state,
+        }
     }
 }
 
@@ -420,7 +423,13 @@ impl HintProcessor for CairoHintProcessor<'_> {
                     .protostar_test_config
                     .as_ref()
                     .expect("Protostar test config is needed for executing hints");
-                return execute_protostar_hint(vm, exec_scopes, hint, blockifier_state, protostar_test_config);
+                return execute_protostar_hint(
+                    vm,
+                    exec_scopes,
+                    hint,
+                    blockifier_state,
+                    protostar_test_config,
+                );
             }
             Hint::Starknet(hint) => hint,
         };
@@ -1553,7 +1562,13 @@ pub fn run_function<'a, 'b: 'a, Instructions: Iterator<Item = &'a Instruction> +
         .map(Felt252::from)
         .map(MaybeRelocatable::from)
         .collect();
-    let mut hint_processor = CairoHintProcessor::new(runner, instructions, starknet_state, protostar_test_config, blockifier_state);
+    let mut hint_processor = CairoHintProcessor::new(
+        runner,
+        instructions,
+        starknet_state,
+        protostar_test_config,
+        blockifier_state,
+    );
 
     let data_len = data.len();
     let program = Program {
