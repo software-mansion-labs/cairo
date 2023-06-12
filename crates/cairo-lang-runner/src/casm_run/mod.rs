@@ -1494,7 +1494,30 @@ fn execute_protostar_hint(
         &ProtostarHint::Deploy { .. } => todo!(),
         &ProtostarHint::Prepare { .. } => todo!(),
         &ProtostarHint::Call { .. } => todo!(),
-        &ProtostarHint::Print { .. } => todo!(),
+        ProtostarHint::Print { start, end } => {
+            let as_relocatable = |vm, value| {
+                let (base, offset) = extract_buffer(value);
+                get_ptr(vm, base, &offset)
+            };
+
+            let mut curr = as_relocatable(vm, start)?;
+            let end = as_relocatable(vm, end)?;
+
+            while curr != end {
+                let value = vm.get_integer(curr)?;
+                if let Some(shortstring) = as_cairo_short_string(&value) {
+                    println!(
+                        "original value: [{}], converted to a string: [{}]",
+                        value, shortstring
+                    );
+                } else {
+                    println!("original value: [{}]", value);
+                }
+                curr += 1;
+            }
+
+            Ok(())
+        }
     }
 }
 
