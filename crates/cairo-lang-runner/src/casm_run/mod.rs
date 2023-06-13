@@ -17,10 +17,12 @@ use blockifier::block_context::BlockContext;
 use blockifier::execution::contract_class::{
     ContractClass as BlockifierContractClass, ContractClassV1,
 };
+use starknet_api::transaction::Fee;
 use blockifier::state::cached_state::CachedState;
+use blockifier::state::state_api::StateReader;
 use blockifier::test_utils::DictStateReader;
+use blockifier::transaction::transaction_utils_for_protostar::{declare_tx_default, deploy_account_tx};
 use blockifier::transaction::account_transaction::AccountTransaction;
-use blockifier::transaction::transaction_utils_for_protostar::declare_tx_default;
 use blockifier::transaction::transactions::{DeclareTransaction, ExecutableTransaction};
 use cairo_felt::{felt_str as felt252_str, Felt252, PRIME_STR};
 use cairo_lang_casm::hints::{CoreHint, DeprecatedHint, Hint, ProtostarHint, StarknetHint};
@@ -61,6 +63,10 @@ use smol_str::SmolStr;
 use self::dict_manager::DictSquashExecScope;
 use crate::short_string::as_cairo_short_string;
 use crate::{Arg, ProtostarTestConfig, RunResultValue, SierraCasmRunner};
+
+use starknet_api::core::{ClassHash, ContractAddress};
+use starknet_api::hash::StarkFelt;
+use starknet_api::stark_felt;
 
 pub fn build_project_config(
     source_root: &Path,
@@ -1466,7 +1472,7 @@ fn execute_protostar_hint(
 
             let actual_execution_info = account_tx
                 .execute(blockifier_state, block_context)
-                .expect("error executing transaction");
+                .expect("error executing transaction declare");
 
             let class_hash = actual_execution_info
                 .validate_call_info
@@ -1491,7 +1497,51 @@ fn execute_protostar_hint(
         &ProtostarHint::StopPrank { .. } => todo!(),
         &ProtostarHint::Invoke { .. } => todo!(),
         &ProtostarHint::MockCall { .. } => todo!(),
-        &ProtostarHint::Deploy { .. } => todo!(),
+        ProtostarHint::Deploy {
+            prepared_contract_address,
+            prepared_class_hash,
+            prepared_constructor_calldata_start,
+            prepared_constructor_calldata_end,
+            deployed_contract_address,
+            panic_data_start,
+            panic_data_end
+        } => {
+            let contract_address = get_val(vm, prepared_contract_address)?;
+            let class_hash = get_val(vm, prepared_class_hash)?;
+
+            let as_relocatable = |vm, value| {
+                let (base, offset) = extract_buffer(value);
+                get_ptr(vm, base, &offset)
+            };
+            let mut curr = as_relocatable(vm, prepared_constructor_calldata_start)?;
+            let end = as_relocatable(vm, prepared_constructor_calldata_end)?;
+            let mut calldata: Vec<Felt252> = vec![];
+            while curr != end {
+                let value = vm.get_integer(curr)?;
+                calldata.push(value.into_owned());
+                curr += 1;
+            }
+            let chint = Felt252::to_i128(&class_hash).unwrap();
+            let chstr = format!("{:x}", chint);
+            let mut deploy_account_tx = deploy_account_tx(&chstr, None, None); // this throws "undeclared transaction"
+            deploy_account_tx.max_fee = Fee(0);
+            let account_tx = AccountTransaction::DeployAccount(deploy_account_tx.clone());
+            let block_context = &BlockContext::create_for_account_testing();
+            let asd = contract_address.to_u128().unwrap();
+            let arg_starkfelt : StarkFelt = StarkFelt::try_from(asd).unwrap();
+            let contract_address2 = ContractAddress::try_from(arg_starkfelt).unwrap();
+            let bal = blockifier_state.state.get_fee_token_balance(&block_context, &contract_address2);
+            let actual_execution_info = account_tx
+                .execute(blockifier_state, block_context)
+                .expect("error executing transaction deploy");
+
+            insert_value_to_cellref!(vm, deployed_contract_address, contract_address)?;
+            // todo in case of error, consider filling the panic data instead of packing in rust
+            insert_value_to_cellref!(vm, panic_data_start, Felt252::from(0))?;
+            insert_value_to_cellref!(vm, panic_data_end, Felt252::from(0))?;
+
+            Ok(())
+        },
         &ProtostarHint::Prepare { .. } => todo!(),
         &ProtostarHint::Call { .. } => todo!(),
         ProtostarHint::Print { start, end } => {
