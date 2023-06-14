@@ -1,13 +1,11 @@
 use std::any::Any;
 use std::collections::HashMap;
 use std::ops::{Deref, Shl};
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
+use snapbox::cmd::Command as SnapboxCommand;
 // =========================================
 // TODO this code comes from cairo/crates/cairo-lang-protostar/ but that package uses
 // cairo-lang-runner (current pkg), so this results in cyclic deps
 // we should definitely avoid code duplication
-use std::sync::Arc;
 use std::{i64, str};
 
 use anyhow::Result;
@@ -31,18 +29,8 @@ use cairo_lang_casm::instructions::Instruction;
 use cairo_lang_casm::operand::{
     BinOpOperand, CellRef, DerefOrImmediate, Operation, Register, ResOperand,
 };
-use cairo_lang_compiler::db::RootDatabase;
-use cairo_lang_compiler::project::{
-    get_main_crate_ids_from_project, setup_single_file_project,
-    update_crate_roots_from_project_config, ProjectError,
-};
-use cairo_lang_compiler::CompilerConfig;
-use cairo_lang_filesystem::ids::CrateId;
-use cairo_lang_project::{DeserializationError, ProjectConfig, ProjectConfigContent};
-use cairo_lang_semantic::db::SemanticGroup;
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
-use cairo_lang_starknet::contract_class::{compile_contract_in_prepared_db, ContractClass};
-use cairo_lang_starknet::plugin::StarkNetPlugin;
+use cairo_lang_starknet::contract_class::ContractClass;
 use cairo_lang_utils::extract_matches;
 use cairo_vm::hint_processor::hint_processor_definition::{HintProcessor, HintReference};
 use cairo_vm::serde::deserialize_program::{
@@ -59,73 +47,13 @@ use dict_manager::DictManagerExecScope;
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, ToPrimitive, Zero};
-use smol_str::SmolStr;
 
 use self::dict_manager::DictSquashExecScope;
 use crate::short_string::as_cairo_short_string;
-use crate::{Arg, ProtostarTestConfig, RunResultValue, SierraCasmRunner};
+use crate::{Arg, RunResultValue, SierraCasmRunner};
 
 use starknet_api::core::ContractAddress;
 use starknet_api::hash::StarkFelt;
-
-pub fn build_project_config(
-    source_root: &Path,
-    crate_name: &str,
-) -> Result<ProjectConfig, DeserializationError> {
-    let base_path: PathBuf = source_root.to_str().ok_or(DeserializationError::PathError)?.into();
-    let crate_roots = HashMap::from([(SmolStr::from(crate_name), base_path.clone())]);
-    Ok(ProjectConfig { base_path, content: ProjectConfigContent { crate_roots }, corelib: None })
-}
-
-pub fn setup_project_without_cairo_project_toml(
-    db: &mut dyn SemanticGroup,
-    path: &Path,
-    crate_name: &str,
-) -> Result<Vec<CrateId>, ProjectError> {
-    if path.is_dir() {
-        match build_project_config(path, crate_name) {
-            Ok(config) => {
-                let main_crate_ids = get_main_crate_ids_from_project(db, &config);
-                update_crate_roots_from_project_config(db, config);
-                Ok(main_crate_ids)
-            }
-            _ => Err(ProjectError::LoadProjectError),
-        }
-    } else {
-        Ok(vec![setup_single_file_project(db, path)?])
-    }
-}
-
-fn compile_from_resolved_dependencies(
-    input_path: &str,
-    contract_path: Option<&str>,
-    compiler_config: CompilerConfig<'_>,
-    maybe_cairo_paths: Option<Vec<(&str, &str)>>,
-    corelib_path: PathBuf,
-) -> Result<ContractClass> {
-    let mut db = RootDatabase::builder()
-        .set_corelib_path(corelib_path)
-        .with_semantic_plugin(Arc::new(StarkNetPlugin::default()))
-        .build()?;
-
-    let cairo_paths = match maybe_cairo_paths {
-        Some(paths) => paths,
-        None => vec![],
-    };
-    let main_crate_name = match cairo_paths.iter().find(|(path, _crate_name)| **path == *input_path)
-    {
-        Some((_crate_path, crate_name)) => crate_name,
-        None => "",
-    };
-
-    let main_crate_ids =
-        setup_project_without_cairo_project_toml(&mut db, Path::new(&input_path), main_crate_name)?;
-    for (cairo_path, crate_name) in cairo_paths {
-        setup_project_without_cairo_project_toml(&mut db, Path::new(cairo_path), crate_name)?;
-    }
-
-    compile_contract_in_prepared_db(&mut db, contract_path, main_crate_ids, compiler_config)
-}
 
 // =========================================
 
@@ -169,7 +97,6 @@ pub struct CairoHintProcessor<'a> {
     pub string_to_hint: HashMap<String, Hint>,
     // The starknet state.
     pub starknet_state: StarknetState,
-    protostar_test_config: Option<ProtostarTestConfig>,
     blockifier_state: Option<CachedState<DictStateReader>>,
 }
 
@@ -178,7 +105,6 @@ impl<'a> CairoHintProcessor<'a> {
         runner: Option<&'a SierraCasmRunner>,
         instructions: Instructions,
         starknet_state: StarknetState,
-        protostar_test_config: Option<ProtostarTestConfig>,
         blockifier_state: Option<CachedState<DictStateReader>>,
     ) -> Self {
         let mut hints_dict: HashMap<usize, Vec<HintParams>> = HashMap::new();
@@ -205,7 +131,6 @@ impl<'a> CairoHintProcessor<'a> {
             hints_dict,
             string_to_hint,
             starknet_state,
-            protostar_test_config,
             blockifier_state,
         }
     }
@@ -426,16 +351,11 @@ impl HintProcessor for CairoHintProcessor<'_> {
                     .blockifier_state
                     .as_mut()
                     .expect("blockifier state is needed for executing hints");
-                let protostar_test_config = self
-                    .protostar_test_config
-                    .as_ref()
-                    .expect("Protostar test config is needed for executing hints");
                 return execute_protostar_hint(
                     vm,
                     exec_scopes,
                     hint,
                     blockifier_state,
-                    protostar_test_config,
                 );
             }
             Hint::Starknet(hint) => hint,
@@ -659,7 +579,6 @@ impl HintProcessor for CairoHintProcessor<'_> {
                                     Some(*gas_counter),
                                     self.starknet_state.clone(),
                                     None,
-                                    None,
                                 )
                                 .expect("Internal runner error.");
                             *gas_counter = res.gas_counter.unwrap().to_usize().unwrap();
@@ -753,7 +672,6 @@ impl HintProcessor for CairoHintProcessor<'_> {
                                 Some(*gas_counter),
                                 self.starknet_state.clone(),
                                 None,
-                                None,
                             )
                             .expect("Internal runner error.");
 
@@ -817,7 +735,6 @@ impl HintProcessor for CairoHintProcessor<'_> {
                                 &[Arg::Array(values)],
                                 Some(*gas_counter),
                                 self.starknet_state.clone(),
-                                None,
                                 None,
                             )
                             .expect("Internal runner error.");
@@ -1420,7 +1337,6 @@ fn execute_protostar_hint(
     exec_scopes: &mut ExecutionScopes,
     hint: &cairo_lang_casm::hints::ProtostarHint,
     blockifier_state: &mut CachedState<DictStateReader>,
-    protostar_test_config: &ProtostarTestConfig,
 ) -> Result<(), HintError> {
     match hint {
         &ProtostarHint::StartRoll { .. } => todo!(),
@@ -1432,26 +1348,26 @@ fn execute_protostar_hint(
 
             let contract_value_as_short_str =
                 as_cairo_short_string(&contract_value).expect("conversion to short string failed");
-            let path_from_config = protostar_test_config
-                .contracts_paths
-                .get(&contract_value_as_short_str)
-                .expect(&format!(
-                    "expected contract paths for given contract name: {}",
-                    &contract_value_as_short_str
-                ));
 
-            let contract_path = PathBuf::from(path_from_config);
-            // cairo => sierra
-            let sierra_contract_class = compile_from_resolved_dependencies(
-                Path::new(contract_path.to_str().unwrap())
-                    .to_str()
-                    .expect("converting contract path to string failed"),
-                None,
-                CompilerConfig { ..CompilerConfig::default() },
-                None,
-                PathBuf::from_str(&protostar_test_config.corelib_path[..]).expect("valid corelib path expected in config"),
-            )
-            .expect("cairo to sierra failed");
+            SnapboxCommand::new("scarb")
+                .arg("build")
+                .current_dir(std::env::current_dir().unwrap())
+                .assert()
+                .success();
+            let paths = std::fs::read_dir("./target/dev").unwrap();
+            let mut maybe_sierra_path: Option<String> = None;
+            for path in paths {
+                let path_str = path.unwrap().path().to_str().unwrap().to_string();
+                if path_str.contains(&contract_value_as_short_str[..]) && path_str.contains(".sierra.json") {
+                    maybe_sierra_path = Some(path_str);
+                }
+            }
+            let file = std::fs::File::open(maybe_sierra_path.expect("no valid path to sierra file detected"))
+                .expect("file should open read only");
+            // let json: serde_json::Value = serde_json::from_reader(file)
+            //     .expect("file should be proper JSON");
+            let sierra_contract_class: ContractClass =
+                serde_json::from_reader(file).expect("file should be proper JSON");
 
             // sierra => casm
             let casm_contract_class =
@@ -1628,7 +1544,6 @@ pub fn run_function<'a, 'b: 'a, Instructions: Iterator<Item = &'a Instruction> +
         context: RunFunctionContext<'_>,
     ) -> Result<(), Box<VirtualMachineError>>,
     starknet_state: StarknetState,
-    protostar_test_config: Option<ProtostarTestConfig>,
     blockifier_state: Option<CachedState<DictStateReader>>,
 ) -> Result<RunFunctionRes, Box<VirtualMachineError>> {
     let data: Vec<MaybeRelocatable> = instructions
@@ -1641,7 +1556,6 @@ pub fn run_function<'a, 'b: 'a, Instructions: Iterator<Item = &'a Instruction> +
         runner,
         instructions,
         starknet_state,
-        protostar_test_config,
         blockifier_state,
     );
 

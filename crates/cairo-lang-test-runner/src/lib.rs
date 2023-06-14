@@ -260,7 +260,6 @@ pub fn run_tests(
                     test.available_gas,
                     Default::default(),
                     None,
-                    None,
                 )
                 .with_context(|| format!("Failed to run the function `{}`.", name.as_str()))?;
             Ok((

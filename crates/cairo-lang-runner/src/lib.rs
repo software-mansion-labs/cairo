@@ -148,7 +148,6 @@ impl SierraCasmRunner {
         args: &[Arg],
         available_gas: Option<usize>,
         starknet_state: StarknetState,
-        protostar_test_config: Option<ProtostarTestConfig>,
         blockifier_state: Option<CachedState<DictStateReader>>,
     ) -> Result<RunResult, RunnerError> {
         let initial_gas = self.get_initial_available_gas(func, available_gas)?;
@@ -177,7 +176,6 @@ impl SierraCasmRunner {
                 Ok(())
             },
             starknet_state,
-            protostar_test_config,
             blockifier_state,
         )?;
         let mut results_data = self.get_results_data(func, &cells, ap)?;
