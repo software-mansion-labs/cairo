@@ -39,6 +39,7 @@ pub mod short_string;
 
 #[derive(Clone)]
 pub struct ProtostarTestConfig {
+    pub corelib_path: String,
     // name, path
     pub contracts_paths: HashMap<String, String>,
 }

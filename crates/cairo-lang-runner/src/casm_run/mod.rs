@@ -2,6 +2,7 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::ops::{Deref, Shl};
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 // =========================================
 // TODO this code comes from cairo/crates/cairo-lang-protostar/ but that package uses
 // cairo-lang-runner (current pkg), so this results in cyclic deps
@@ -64,9 +65,8 @@ use self::dict_manager::DictSquashExecScope;
 use crate::short_string::as_cairo_short_string;
 use crate::{Arg, ProtostarTestConfig, RunResultValue, SierraCasmRunner};
 
-use starknet_api::core::{ClassHash, ContractAddress};
+use starknet_api::core::ContractAddress;
 use starknet_api::hash::StarkFelt;
-use starknet_api::stark_felt;
 
 pub fn build_project_config(
     source_root: &Path,
@@ -101,9 +101,10 @@ fn compile_from_resolved_dependencies(
     contract_path: Option<&str>,
     compiler_config: CompilerConfig<'_>,
     maybe_cairo_paths: Option<Vec<(&str, &str)>>,
+    corelib_path: PathBuf,
 ) -> Result<ContractClass> {
     let mut db = RootDatabase::builder()
-        .detect_corelib()
+        .set_corelib_path(corelib_path)
         .with_semantic_plugin(Arc::new(StarkNetPlugin::default()))
         .build()?;
 
@@ -1448,6 +1449,7 @@ fn execute_protostar_hint(
                 None,
                 CompilerConfig { ..CompilerConfig::default() },
                 None,
+                PathBuf::from_str(&protostar_test_config.corelib_path[..]).expect("valid corelib path expected in config"),
             )
             .expect("cairo to sierra failed");
 
