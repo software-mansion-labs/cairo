@@ -2,10 +2,6 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::ops::{Deref, Shl};
 use snapbox::cmd::Command as SnapboxCommand;
-// =========================================
-// TODO this code comes from cairo/crates/cairo-lang-protostar/ but that package uses
-// cairo-lang-runner (current pkg), so this results in cyclic deps
-// we should definitely avoid code duplication
 use std::{i64, str};
 
 use anyhow::Result;
@@ -54,8 +50,6 @@ use crate::{Arg, RunResultValue, SierraCasmRunner};
 
 use starknet_api::core::ContractAddress;
 use starknet_api::hash::StarkFelt;
-
-// =========================================
 
 #[cfg(test)]
 mod test;
@@ -1364,12 +1358,9 @@ fn execute_protostar_hint(
             }
             let file = std::fs::File::open(maybe_sierra_path.expect("no valid path to sierra file detected"))
                 .expect("file should open read only");
-            // let json: serde_json::Value = serde_json::from_reader(file)
-            //     .expect("file should be proper JSON");
             let sierra_contract_class: ContractClass =
                 serde_json::from_reader(file).expect("file should be proper JSON");
 
-            // sierra => casm
             let casm_contract_class =
                 CasmContractClass::from_contract_class(sierra_contract_class, true)
                     .expect("sierra to casm failed");
@@ -1441,7 +1432,7 @@ fn execute_protostar_hint(
             }
             let chint = Felt252::to_i128(&class_hash).unwrap();
             let chstr = format!("{:x}", chint);
-            let mut deploy_account_tx = deploy_account_tx(&chstr, None, None); // this throws "undeclared transaction"
+            let mut deploy_account_tx = deploy_account_tx(&chstr, None, None);
             deploy_account_tx.max_fee = Fee(0);
             let account_tx = AccountTransaction::DeployAccount(deploy_account_tx.clone());
             let block_context = &BlockContext::create_for_account_testing();
