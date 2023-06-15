@@ -37,13 +37,6 @@ use thiserror::Error;
 pub mod casm_run;
 pub mod short_string;
 
-#[derive(Clone)]
-pub struct ProtostarTestConfig {
-    pub corelib_path: String,
-    // name, path
-    pub contracts_paths: HashMap<String, String>,
-}
-
 #[derive(Debug, Error)]
 pub enum RunnerError {
     #[error("Not enough gas to call function.")]
