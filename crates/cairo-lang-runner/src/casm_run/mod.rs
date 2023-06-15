@@ -1332,7 +1332,7 @@ fn execute_protostar_hint(
 
             SnapboxCommand::new("scarb")
                 .arg("build")
-                .current_dir(std::env::current_dir().expect("faile to obtain current dir"))
+                .current_dir(std::env::current_dir().expect("failed to obtain current dir"))
                 .assert()
                 .success();
             let paths = std::fs::read_dir("./target/dev").expect("failed to read ./target/dev");

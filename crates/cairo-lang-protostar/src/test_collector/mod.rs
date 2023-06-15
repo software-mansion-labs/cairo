@@ -227,7 +227,7 @@ pub struct LinkedLibrary {
 pub fn collect_tests(
     input_path: &str,
     output_path: Option<&str>,
-    linked_libraries: Option<Vec<LinkedLibrary>>,
+    linked_libraries: &Option<Vec<LinkedLibrary>>,
     builtins: Option<Vec<&str>>,
     corelib_path: Option<&str>,
 ) -> Result<(Program, Vec<TestConfigInternal>)> {
@@ -252,7 +252,7 @@ pub fn collect_tests(
         .with_context(|| format!("Failed to setup project for path({})", input_path))?;
 
     if let Some(linked_libraries) = linked_libraries {
-        for linked_library in &linked_libraries {
+        for linked_library in linked_libraries {
             setup_project_without_cairo_project_toml(
                 db,
                 &linked_library.path,
