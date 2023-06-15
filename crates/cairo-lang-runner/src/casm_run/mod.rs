@@ -1345,13 +1345,13 @@ fn execute_protostar_hint(
 
             SnapboxCommand::new("scarb")
                 .arg("build")
-                .current_dir(std::env::current_dir().unwrap())
+                .current_dir(std::env::current_dir().expect("faile to obtain current dir"))
                 .assert()
                 .success();
-            let paths = std::fs::read_dir("./target/dev").unwrap();
+            let paths = std::fs::read_dir("./target/dev").expect("failed to read ./target/dev");
             let mut maybe_sierra_path: Option<String> = None;
             for path in paths {
-                let path_str = path.unwrap().path().to_str().unwrap().to_string();
+                let path_str = path.expect("path not resolved properly").path().to_str().expect("failed to convert path to string").to_string();
                 if path_str.contains(&contract_value_as_short_str[..]) && path_str.contains(".sierra.json") {
                     maybe_sierra_path = Some(path_str);
                 }
@@ -1430,7 +1430,7 @@ fn execute_protostar_hint(
                 calldata.push(value.into_owned());
                 curr += 1;
             }
-            let chint = Felt252::to_i128(&class_hash).unwrap();
+            let chint = Felt252::to_i128(&class_hash).expect("failed to convert felt to i128");
             let chstr = format!("{:x}", chint);
             let mut deploy_account_tx = deploy_account_tx(&chstr, None, None);
             deploy_account_tx.max_fee = Fee(0);
