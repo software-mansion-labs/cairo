@@ -14,7 +14,6 @@ use blockifier::execution::contract_class::{
 };
 use starknet_api::transaction::Fee;
 use blockifier::state::cached_state::CachedState;
-use blockifier::state::state_api::StateReader;
 use blockifier::test_utils::DictStateReader;
 use blockifier::transaction::transaction_utils_for_protostar::{declare_tx_default, deploy_account_tx};
 use blockifier::transaction::account_transaction::AccountTransaction;
@@ -47,9 +46,6 @@ use num_traits::{FromPrimitive, ToPrimitive, Zero};
 use self::dict_manager::DictSquashExecScope;
 use crate::short_string::as_cairo_short_string;
 use crate::{Arg, RunResultValue, SierraCasmRunner};
-
-use starknet_api::core::ContractAddress;
-use starknet_api::hash::StarkFelt;
 
 #[cfg(test)]
 mod test;
