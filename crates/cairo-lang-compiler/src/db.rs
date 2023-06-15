@@ -19,7 +19,6 @@ use cairo_lang_semantic::plugin::SemanticPlugin;
 use cairo_lang_sierra_generator::db::SierraGenDatabase;
 use cairo_lang_syntax::node::db::{SyntaxDatabase, SyntaxGroup};
 use cairo_lang_utils::Upcast;
-use std::path::PathBuf;
 
 use crate::project::update_crate_roots_from_project_config;
 
@@ -68,7 +67,6 @@ impl Default for RootDatabase {
 pub struct RootDatabaseBuilder {
     plugins: Vec<Arc<dyn SemanticPlugin>>,
     detect_corelib: bool,
-    corelib_path: Option<PathBuf>,
     project_config: Option<Box<ProjectConfig>>,
     cfg_set: Option<CfgSet>,
 }
@@ -79,7 +77,6 @@ impl RootDatabaseBuilder {
             plugins: get_default_plugins(),
             detect_corelib: false,
             project_config: None,
-            corelib_path: None,
             cfg_set: None,
         }
     }
@@ -109,11 +106,6 @@ impl RootDatabaseBuilder {
         self
     }
 
-    pub fn set_corelib_path(&mut self, corelib_path: PathBuf) -> &mut Self {
-        self.corelib_path = Some(corelib_path);
-        self
-    }
-
     pub fn build(&mut self) -> Result<RootDatabase> {
         // NOTE: Order of operations matters here!
         //   Errors if something is not OK are very subtle, mostly this results in missing
@@ -129,8 +121,6 @@ impl RootDatabaseBuilder {
             let path =
                 detect_corelib().ok_or_else(|| anyhow!("Failed to find development corelib."))?;
             init_dev_corelib(&mut db, path);
-        } else if let Some(path) = &self.corelib_path {
-            init_dev_corelib(&mut db, path.clone());
         }
 
         if let Some(config) = self.project_config.clone() {
