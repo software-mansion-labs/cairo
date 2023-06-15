@@ -1,7 +1,6 @@
 use std::any::Any;
 use std::collections::HashMap;
 use std::ops::{Deref, Shl};
-use snapbox::cmd::Command as SnapboxCommand;
 use std::{i64, str};
 
 use anyhow::Result;
@@ -12,11 +11,12 @@ use blockifier::block_context::BlockContext;
 use blockifier::execution::contract_class::{
     ContractClass as BlockifierContractClass, ContractClassV1,
 };
-use starknet_api::transaction::Fee;
 use blockifier::state::cached_state::CachedState;
 use blockifier::test_utils::DictStateReader;
-use blockifier::transaction::transaction_utils_for_protostar::{declare_tx_default, deploy_account_tx};
 use blockifier::transaction::account_transaction::AccountTransaction;
+use blockifier::transaction::transaction_utils_for_protostar::{
+    declare_tx_default, deploy_account_tx,
+};
 use blockifier::transaction::transactions::{DeclareTransaction, ExecutableTransaction};
 use cairo_felt::{felt_str as felt252_str, Felt252, PRIME_STR};
 use cairo_lang_casm::hints::{CoreHint, DeprecatedHint, Hint, ProtostarHint, StarknetHint};
@@ -42,6 +42,8 @@ use dict_manager::DictManagerExecScope;
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, ToPrimitive, Zero};
+use snapbox::cmd::Command as SnapboxCommand;
+use starknet_api::transaction::Fee;
 
 use self::dict_manager::DictSquashExecScope;
 use crate::short_string::as_cairo_short_string;
@@ -116,13 +118,7 @@ impl<'a> CairoHintProcessor<'a> {
             }
             hint_offset += instruction.body.op_size();
         }
-        CairoHintProcessor {
-            runner,
-            hints_dict,
-            string_to_hint,
-            starknet_state,
-            blockifier_state,
-        }
+        CairoHintProcessor { runner, hints_dict, string_to_hint, starknet_state, blockifier_state }
     }
 }
 
@@ -341,12 +337,7 @@ impl HintProcessor for CairoHintProcessor<'_> {
                     .blockifier_state
                     .as_mut()
                     .expect("blockifier state is needed for executing hints");
-                return execute_protostar_hint(
-                    vm,
-                    exec_scopes,
-                    hint,
-                    blockifier_state,
-                );
+                return execute_protostar_hint(vm, exec_scopes, hint, blockifier_state);
             }
             Hint::Starknet(hint) => hint,
         };
@@ -1347,13 +1338,22 @@ fn execute_protostar_hint(
             let paths = std::fs::read_dir("./target/dev").expect("failed to read ./target/dev");
             let mut maybe_sierra_path: Option<String> = None;
             for path in paths {
-                let path_str = path.expect("path not resolved properly").path().to_str().expect("failed to convert path to string").to_string();
-                if path_str.contains(&contract_value_as_short_str[..]) && path_str.contains(".sierra.json") {
+                let path_str = path
+                    .expect("path not resolved properly")
+                    .path()
+                    .to_str()
+                    .expect("failed to convert path to string")
+                    .to_string();
+                if path_str.contains(&contract_value_as_short_str[..])
+                    && path_str.contains(".sierra.json")
+                {
                     maybe_sierra_path = Some(path_str);
                 }
             }
-            let file = std::fs::File::open(maybe_sierra_path.expect("no valid path to sierra file detected"))
-                .expect("file should open read only");
+            let file = std::fs::File::open(
+                maybe_sierra_path.expect("no valid path to sierra file detected"),
+            )
+            .expect("file should open read only");
             let sierra_contract_class: ContractClass =
                 serde_json::from_reader(file).expect("file should be proper JSON");
 
@@ -1409,7 +1409,7 @@ fn execute_protostar_hint(
             prepared_constructor_calldata_end,
             deployed_contract_address,
             panic_data_start,
-            panic_data_end
+            panic_data_end,
         } => {
             let contract_address = get_val(vm, prepared_contract_address)?;
             let class_hash = get_val(vm, prepared_class_hash)?;
@@ -1442,7 +1442,7 @@ fn execute_protostar_hint(
             insert_value_to_cellref!(vm, panic_data_end, Felt252::from(0))?;
 
             Ok(())
-        },
+        }
         &ProtostarHint::Prepare { .. } => todo!(),
         &ProtostarHint::Call { .. } => todo!(),
         ProtostarHint::Print { start, end } => {
@@ -1535,12 +1535,8 @@ pub fn run_function<'a, 'b: 'a, Instructions: Iterator<Item = &'a Instruction> +
         .map(Felt252::from)
         .map(MaybeRelocatable::from)
         .collect();
-    let mut hint_processor = CairoHintProcessor::new(
-        runner,
-        instructions,
-        starknet_state,
-        blockifier_state,
-    );
+    let mut hint_processor =
+        CairoHintProcessor::new(runner, instructions, starknet_state, blockifier_state);
 
     let data_len = data.len();
     let program = Program {
