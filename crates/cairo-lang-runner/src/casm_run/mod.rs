@@ -1436,10 +1436,6 @@ fn execute_protostar_hint(
             deploy_account_tx.max_fee = Fee(0);
             let account_tx = AccountTransaction::DeployAccount(deploy_account_tx.clone());
             let block_context = &BlockContext::create_for_account_testing();
-            let asd = contract_address.to_u128().unwrap();
-            let arg_starkfelt : StarkFelt = StarkFelt::try_from(asd).unwrap();
-            let contract_address2 = ContractAddress::try_from(arg_starkfelt).unwrap();
-            let bal = blockifier_state.state.get_fee_token_balance(&block_context, &contract_address2);
             let actual_execution_info = account_tx
                 .execute(blockifier_state, block_context)
                 .expect("error executing transaction deploy");
