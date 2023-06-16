@@ -162,6 +162,9 @@ pub enum ProtostarHint {
         nonce: ResOperand,
         set_nonce: ResOperand,
     },
+    StopSpoof {
+        contract_address: ResOperand,
+    },
     Print {
         start: ResOperand,
         end: ResOperand,
@@ -1006,6 +1009,14 @@ impl Display for ProtostarHint {
                         chain_id=chain_id,
                         nonce=nonce,
                     )
+                    "
+                )
+            }
+            ProtostarHint::StopSpoof { contract_address } => {
+                writedoc!(
+                    f,
+                    "
+                    stop_spoof(contract_address=memory[{contract_address}[0]])
                     "
                 )
             }

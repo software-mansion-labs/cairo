@@ -14,6 +14,7 @@ pub fn cheatcodes_libfunc_cost_base(libfunc: &CheatcodesConcreteLibFunc) -> Vec<
         CheatcodesConcreteLibFunc::StartPrank(_) => vec![steps(1), steps(1)],
         CheatcodesConcreteLibFunc::StopPrank(_) => vec![steps(1), steps(1)],
         CheatcodesConcreteLibFunc::StartSpoof(_) => vec![steps(1)],
+        CheatcodesConcreteLibFunc::StopSpoof(_) => vec![steps(1)],
         CheatcodesConcreteLibFunc::Invoke(_) => vec![steps(3), steps(3)],
         CheatcodesConcreteLibFunc::MockCall(_) => vec![steps(1), steps(1)],
         CheatcodesConcreteLibFunc::Deploy(_) => vec![steps(3), steps(3)],

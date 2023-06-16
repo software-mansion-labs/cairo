@@ -28,6 +28,7 @@ define_libfunc_hierarchy! {
         Call(CallLibFunc),
         Print(PrintLibFunc),
         StartSpoof(StartSpoofLibFunc),
+        StopSpoof(StopSpoofLibFunc),
     }, CheatcodesConcreteLibFunc
 }
 
@@ -637,6 +638,30 @@ impl NoGenericArgsGenericLibfunc for StartSpoofLibFunc {
                 // nonce
                 ParamSignature::new(felt252_ty.clone()),
                 ParamSignature::new(bool_ty.clone()),
+            ],
+            branch_signatures: vec![BranchSignature {
+                vars: vec![],
+                ap_change: SierraApChange::Known { new_vars_only: true },
+            }],
+            fallthrough: Some(0),
+        })
+    }
+}
+
+#[derive(Default)]
+pub struct StopSpoofLibFunc {}
+impl NoGenericArgsGenericLibfunc for StopSpoofLibFunc {
+    const STR_ID: &'static str = "stop_spoof";
+
+    fn specialize_signature(
+        &self,
+        context: &dyn SignatureSpecializationContext,
+    ) -> Result<LibfuncSignature, SpecializationError> {
+        let felt252_ty = context.get_concrete_type(Felt252Type::id(), &[])?;
+        Ok(LibfuncSignature {
+            param_signatures: vec![
+                // contract_address
+                ParamSignature::new(felt252_ty.clone()),
             ],
             branch_signatures: vec![BranchSignature {
                 vars: vec![],

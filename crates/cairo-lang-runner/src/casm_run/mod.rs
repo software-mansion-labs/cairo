@@ -1308,6 +1308,7 @@ fn execute_protostar_hint(
         &ProtostarHint::Call { .. } => todo!(),
         &ProtostarHint::Print { .. } => todo!(),
         &ProtostarHint::StartSpoof { .. } => todo!(),
+        &ProtostarHint::StopSpoof { .. } => todo!(),
     }
 }
 

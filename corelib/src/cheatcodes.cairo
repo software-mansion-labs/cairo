@@ -269,4 +269,4 @@ extern fn start_spoof_impl(
     set_nonce: bool
 ) nopanic;
 
-// extern fn stop_spoof(contract_address) nopanic;
+extern fn stop_spoof(contract_address: felt252) nopanic;

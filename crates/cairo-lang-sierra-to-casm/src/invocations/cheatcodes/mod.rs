@@ -11,6 +11,7 @@ use self::print::build_protostar_print;
 use self::start_prank::build_start_prank;
 use self::start_roll::build_start_roll;
 use self::start_spoof::build_start_spoof;
+use self::stop_spoof::build_stop_spoof;
 use self::start_warp::build_start_warp;
 use self::stop_prank::build_stop_prank;
 use self::stop_roll::build_stop_roll;
@@ -29,6 +30,7 @@ mod print;
 mod start_prank;
 mod start_roll;
 mod start_spoof;
+mod stop_spoof;
 mod start_warp;
 mod stop_prank;
 mod stop_roll;
@@ -55,5 +57,6 @@ pub fn build(
         CheatcodesConcreteLibFunc::Call(_) => build_call(builder),
         CheatcodesConcreteLibFunc::Print(_) => build_protostar_print(builder),
         CheatcodesConcreteLibFunc::StartSpoof(_) => build_start_spoof(builder),
+        CheatcodesConcreteLibFunc::StopSpoof(_) => build_stop_spoof(builder),
     }
 }
