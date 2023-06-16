@@ -257,3 +257,9 @@ fn test_start_spoof() {
     let mut tx_info = TxInfoMockTrait::default;
     start_spoof(123, tx_info);
 }
+
+#[test]
+fn test_stop_spoof() {
+    let mut tx_info = TxInfoMockTrait::default;
+    stop_spoof(123);
+}
