@@ -42,7 +42,6 @@ use dict_manager::DictManagerExecScope;
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, ToPrimitive, Zero};
-use snapbox::cmd::Command as SnapboxCommand;
 use starknet_api::transaction::Fee;
 
 use self::dict_manager::DictSquashExecScope;
@@ -1330,12 +1329,7 @@ fn execute_protostar_hint(
             let contract_value_as_short_str =
                 as_cairo_short_string(&contract_value).expect("conversion to short string failed");
 
-            SnapboxCommand::new("scarb")
-                .arg("build")
-                .current_dir(std::env::current_dir().expect("failed to obtain current dir"))
-                .assert()
-                .success();
-            let paths = std::fs::read_dir("./target/dev").expect("failed to read ./target/dev");
+            let paths = std::fs::read_dir("./target/dev").expect("failed to read ./target/dev, maybe build failed");
             let mut maybe_sierra_path: Option<String> = None;
             for path in paths {
                 let path_str = path
