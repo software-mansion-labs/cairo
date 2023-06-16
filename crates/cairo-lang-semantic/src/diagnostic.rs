@@ -117,6 +117,9 @@ impl DiagnosticEntry for SemanticDiagnostic {
             SemanticDiagnosticKind::UnknownType => "Unknown type.".into(),
             SemanticDiagnosticKind::UnknownStruct => "Unknown struct.".into(),
             SemanticDiagnosticKind::UnknownEnum => "Unknown enum.".into(),
+            SemanticDiagnosticKind::LogicalOperatorsNotSupported => {
+                "Logical operators are not supported yet.".into()
+            }
             SemanticDiagnosticKind::NoLiteralFunctionFound => {
                 "A literal with this type cannot be created.".into()
             }
@@ -467,10 +470,10 @@ impl DiagnosticEntry for SemanticDiagnostic {
                     .to_string()
             }
             SemanticDiagnosticKind::InvalidCopyTraitImpl { inference_error } => {
-                format!("Invalid copy trait implementation, {}", inference_error.format(db))
+                format!("Invalid copy trait implementation, {}.", inference_error.format(db))
             }
             SemanticDiagnosticKind::InvalidDropTraitImpl { inference_error } => {
-                format!("Invalid drop trait implementation, {}", inference_error.format(db))
+                format!("Invalid drop trait implementation, {}.", inference_error.format(db))
             }
             SemanticDiagnosticKind::InvalidImplItem { item_kw } => {
                 format!("`{item_kw}` is not allowed inside impl.")
@@ -863,6 +866,7 @@ pub enum SemanticDiagnosticKind {
     InternalInferenceError(InferenceError),
     NoImplementationOfIndexOperator(semantic::TypeId),
     MultipleImplementationOfIndexOperator(semantic::TypeId),
+    LogicalOperatorsNotSupported,
     UnsupportedInlineArguments,
     RedundantInlineAttribute,
     InlineWithoutArgumentNotSupported,

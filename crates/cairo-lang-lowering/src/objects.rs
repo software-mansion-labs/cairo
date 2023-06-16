@@ -5,7 +5,7 @@
 
 use std::ops::{Deref, DerefMut};
 
-use cairo_lang_defs::diagnostic_utils::StableLocationOption;
+use cairo_lang_defs::diagnostic_utils::StableLocation;
 use cairo_lang_diagnostics::Diagnostics;
 use cairo_lang_semantic as semantic;
 use cairo_lang_semantic::{ConcreteEnumId, ConcreteVariant};
@@ -19,9 +19,48 @@ use semantic::items::imp::ImplId;
 
 use self::blocks::FlatBlocks;
 use crate::diagnostic::LoweringDiagnostic;
-use crate::ids::{FunctionId, Signature};
+use crate::ids::{FunctionId, ObjectOriginId, Signature};
+
+/// Represents the origin information of a lowering object.
+///
+/// This struct provides details about the object's origin, such as the original
+/// user code that caused the object to be created.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct ObjectOrigin {
+    /// The stable location of the object.
+    pub stable_location: StableLocation,
+}
+impl ObjectOrigin {
+    pub fn new(stable_location: StableLocation) -> Self {
+        Self { stable_location }
+    }
+}
 
 pub type VariableId = Id<Variable>;
+
+/// Represents a usage of a variable.
+///
+/// For example if we have:
+///
+/// fn foo(a: u32) {
+///     1 + a
+/// }
+///
+/// Then there is a usage of the variable 'a' in the body of the function.
+///
+/// Note usage location is not the location of the variable.
+/// The location of var_id points to the defintion:
+///
+/// fn foo(a: u32)
+///        ^
+///
+/// while the usage location is:
+///     1 + a
+///         ^
+pub struct VarUsage {
+    pub var_id: VariableId,
+    pub location: ObjectOriginId,
+}
 
 /// A lowered function code using flat blocks.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -106,10 +145,12 @@ pub struct Variable {
     pub duplicatable: InferenceResult<ImplId>,
     /// A Destruct impl for the type, if found.
     pub destruct_impl: InferenceResult<ImplId>,
+    /// A PanicDestruct impl for the type, if found.
+    pub panic_destruct_impl: InferenceResult<ImplId>,
     /// Semantic type of the variable.
     pub ty: semantic::TypeId,
     /// Location of the variable.
-    pub location: StableLocationOption,
+    pub location: ObjectOriginId,
 }
 
 /// Lowered statement.
@@ -176,7 +217,7 @@ pub struct StatementCall {
     /// New variables to be introduced into the current scope from the function outputs.
     pub outputs: Vec<VariableId>,
     /// Location for the call.
-    pub location: StableLocationOption,
+    pub location: ObjectOriginId,
 }
 
 /// A statement that construct a variant of an enum with a single argument, and binds it to a
@@ -250,7 +291,7 @@ pub struct MatchExternInfo {
     /// Order must be identical to the order in the definition of the enum.
     pub arms: Vec<MatchArm>,
     /// Location for the call.
-    pub location: StableLocationOption,
+    pub location: ObjectOriginId,
 }
 
 /// A statement that matches an enum, and "calls" a possibly different block for each branch.
@@ -262,6 +303,8 @@ pub struct MatchEnumInfo {
     /// Match arms. All blocks should have the same rets.
     /// Order must be identical to the order in the definition of the enum.
     pub arms: Vec<MatchArm>,
+    /// Location for the match.
+    pub location: ObjectOriginId,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -140,7 +140,6 @@ pub fn core_libfunc_cost(
             BoolConcreteLibfunc::Not(_) => vec![steps(1).into()],
             BoolConcreteLibfunc::Xor(_) => vec![steps(1).into()],
             BoolConcreteLibfunc::Or(_) => vec![steps(2).into()],
-            BoolConcreteLibfunc::Equal(_) => vec![steps(2).into(), steps(3).into()],
             BoolConcreteLibfunc::ToFelt252(_) => vec![steps(0).into()],
         },
         Cast(libfunc) => match libfunc {
@@ -207,6 +206,7 @@ pub fn core_libfunc_cost(
                 vec![steps(info_provider.type_size(&libfunc.ty) as i32).into()]
             }
             ArrayConcreteLibfunc::PopFront(_)
+            | ArrayConcreteLibfunc::PopFrontConsume(_)
             | ArrayConcreteLibfunc::SnapshotPopFront(_)
             | ArrayConcreteLibfunc::SnapshotPopBack(_) => vec![steps(2).into(), steps(3).into()],
             ArrayConcreteLibfunc::Get(libfunc) => {
@@ -549,7 +549,7 @@ fn u256_libfunc_cost(libfunc: &Uint256Concrete) -> Vec<ConstCost> {
         Uint256Concrete::IsZero(_) => {
             vec![steps(2), steps(2)]
         }
-        Uint256Concrete::Divmod(_) => vec![ConstCost { steps: 59, holes: 0, range_checks: 17 }],
+        Uint256Concrete::Divmod(_) => vec![ConstCost { steps: 29, holes: 0, range_checks: 8 }],
         Uint256Concrete::SquareRoot(_) => vec![ConstCost { steps: 33, holes: 0, range_checks: 8 }],
     }
 }

@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::sync::Arc;
 
 use cairo_lang_defs as defs;
@@ -24,7 +23,7 @@ use crate::optimizations::match_optimizer::optimize_matches;
 use crate::optimizations::remappings::optimize_remappings;
 use crate::panic::lower_panics;
 use crate::reorganize_blocks::reorganize_blocks;
-use crate::{ids, FlatBlockEnd, FlatLowered, MatchInfo, Statement};
+use crate::{ids, FlatBlockEnd, FlatLowered, MatchInfo, ObjectOrigin, Statement};
 
 // Salsa database interface.
 #[salsa::query_group(LoweringDatabase)]
@@ -41,6 +40,9 @@ pub trait LoweringGroup: SemanticGroup + Upcast<dyn SemanticGroup> {
         &self,
         id: ids::FunctionWithBodyLongId,
     ) -> ids::FunctionWithBodyId;
+
+    #[salsa::interned]
+    fn intern_object_origin(&self, id: ObjectOrigin) -> ids::ObjectOriginId;
 
     // Reports inlining diagnostics.
     #[salsa::invoke(crate::inline::priv_inline_data)]
@@ -246,7 +248,7 @@ pub trait LoweringGroup: SemanticGroup + Upcast<dyn SemanticGroup> {
     fn function_with_body_feedback_set(
         &self,
         function: ids::ConcreteFunctionWithBodyId,
-    ) -> Maybe<HashSet<ids::ConcreteFunctionWithBodyId>>;
+    ) -> Maybe<OrderedHashSet<ids::ConcreteFunctionWithBodyId>>;
 
     /// Returns whether the given function needs an additional withdraw_gas call.
     #[salsa::invoke(crate::graph_algorithms::feedback_set::needs_withdraw_gas)]
@@ -258,7 +260,7 @@ pub trait LoweringGroup: SemanticGroup + Upcast<dyn SemanticGroup> {
     fn priv_function_with_body_feedback_set_of_representative(
         &self,
         function: ConcreteSCCRepresentative,
-    ) -> Maybe<HashSet<ids::ConcreteFunctionWithBodyId>>;
+    ) -> Maybe<OrderedHashSet<ids::ConcreteFunctionWithBodyId>>;
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
@@ -338,7 +340,6 @@ fn concrete_function_with_body_postpanic_lowered(
 // * Optimizes matches.
 // * Optimizes remappings again.
 // * Reorganizes blocks (topological sort).
-// * Replaces `withdraw_gas` calls with `withdraw_gas_all` where necessary.
 fn concrete_function_with_body_lowered(
     db: &dyn LoweringGroup,
     function: ids::ConcreteFunctionWithBodyId,

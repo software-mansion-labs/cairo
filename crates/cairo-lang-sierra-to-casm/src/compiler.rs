@@ -10,6 +10,7 @@ use cairo_lang_sierra::program::{BranchTarget, Invocation, Program, Statement, S
 use cairo_lang_sierra::program_registry::{ProgramRegistry, ProgramRegistryError};
 use cairo_lang_sierra::ProgramParser;
 use clap::Parser;
+use cairo_lang_sierra_type_size::get_type_size_map;
 use itertools::zip_eq;
 use thiserror::Error;
 
@@ -20,7 +21,6 @@ use crate::invocations::{
 use crate::metadata::{calc_metadata, Metadata};
 use crate::references::{check_types_match, ReferencesError};
 use crate::relocations::{relocate_instructions, RelocationEntry};
-use crate::type_sizes::get_type_size_map;
 
 #[cfg(test)]
 #[path = "compiler_test.rs"]

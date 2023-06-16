@@ -165,20 +165,26 @@ pub fn simulate<
             [_, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
             _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
         },
-        Array(ArrayConcreteLibfunc::PopFront(_)) => match &inputs[..] {
-            [CoreValue::Array(_)] => {
-                let mut iter = inputs.into_iter();
-                let mut arr = extract_matches!(iter.next().unwrap(), CoreValue::Array);
-                if arr.is_empty() {
-                    Ok((vec![CoreValue::Array(arr)], 1))
-                } else {
-                    let front = arr.remove(0);
-                    Ok((vec![CoreValue::Array(arr), front], 0))
+        Array(ArrayConcreteLibfunc::PopFront(_) | ArrayConcreteLibfunc::PopFrontConsume(_)) => {
+            match &inputs[..] {
+                [CoreValue::Array(_)] => {
+                    let mut iter = inputs.into_iter();
+                    let mut arr = extract_matches!(iter.next().unwrap(), CoreValue::Array);
+                    if arr.is_empty() {
+                        Ok((vec![CoreValue::Array(arr)], 1))
+                    } else {
+                        let front = arr.remove(0);
+                        if matches!(libfunc, Array(ArrayConcreteLibfunc::PopFrontConsume(_))) {
+                            Ok((vec![front], 0))
+                        } else {
+                            Ok((vec![CoreValue::Array(arr), front], 0))
+                        }
+                    }
                 }
+                [_] => Err(LibfuncSimulationError::WrongArgType),
+                _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
             }
-            [_] => Err(LibfuncSimulationError::WrongArgType),
-            _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
-        },
+        }
         Array(ArrayConcreteLibfunc::Get(_)) => match &inputs[..] {
             [CoreValue::RangeCheck, CoreValue::Array(_), CoreValue::Uint64(_)] => {
                 let mut iter = inputs.into_iter();
@@ -420,14 +426,6 @@ fn simulate_bool_libfunc(
                 ))
             }
             [_, _] => Err(LibfuncSimulationError::WrongArgType),
-            _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
-        },
-        BoolConcreteLibfunc::Equal(_) => match inputs {
-            [CoreValue::Enum { index: a_index, .. }, CoreValue::Enum { index: b_index, .. }] => {
-                // The variant index defines the true/false "value". Index zero is false.
-                Ok((vec![], usize::from(*a_index == *b_index)))
-            }
-            [_, _] => Err(LibfuncSimulationError::MemoryLayoutMismatch),
             _ => Err(LibfuncSimulationError::WrongNumberOfArgs),
         },
         BoolConcreteLibfunc::ToFelt252(_) => match inputs {

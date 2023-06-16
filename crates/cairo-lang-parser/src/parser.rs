@@ -55,7 +55,7 @@ pub struct Parser<'a> {
 // never a missing kind.
 // Should only be called after checking the current token.
 
-const MAX_PRECEDENCE: usize = 10;
+const MAX_PRECEDENCE: usize = 1000;
 const TOP_LEVEL_ITEM_DESCRIPTION: &str =
     "Const/Module/Use/FreeFunction/ExternFunction/ExternType/Trait/Impl/Struct/Enum/TypeAlias";
 const TRAIT_ITEM_DESCRIPTION: &str = "trait item";
@@ -502,7 +502,7 @@ impl<'a> Parser<'a> {
             SyntaxKind::TerminalHash => {
                 let hash = self.take::<TerminalHash>();
                 let lbrack = self.parse_token::<TerminalLBrack>();
-                let attr = self.parse_identifier();
+                let attr = self.parse_path();
                 let arguments = self.try_parse_parenthesized_argument_list();
                 let rbrack = self.parse_token::<TerminalRBrack>();
 
@@ -718,6 +718,8 @@ impl<'a> Parser<'a> {
     /// Assumes the current token is an operator (binary or unary).
     /// Returns a GreenId of the operator or None if the operator is a unary-only operator.
     fn try_parse_binary_operator(&mut self) -> Option<BinaryOperatorGreen> {
+        // Note that if this code is not reached you might need to add the operator to
+        // `get_post_operator_precedence`.
         if matches!(self.peek().kind, SyntaxKind::TerminalNot | SyntaxKind::TerminalAt) {
             None
         } else {
@@ -741,6 +743,8 @@ impl<'a> Parser<'a> {
                 SyntaxKind::TerminalLE => self.take::<TerminalLE>().into(),
                 SyntaxKind::TerminalGE => self.take::<TerminalGE>().into(),
                 SyntaxKind::TerminalAnd => self.take::<TerminalAnd>().into(),
+                SyntaxKind::TerminalAndAnd => self.take::<TerminalAndAnd>().into(),
+                SyntaxKind::TerminalOrOr => self.take::<TerminalOrOr>().into(),
                 SyntaxKind::TerminalOr => self.take::<TerminalOr>().into(),
                 SyntaxKind::TerminalXor => self.take::<TerminalXor>().into(),
                 _ => unreachable!(),
@@ -1130,6 +1134,17 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Returns a GreenId of a node with kind OptionExprClause or OptionExprClauseEmpty if an
+    /// argument expression `("Expr")` can't be parsed.
+    fn parse_option_expression_clause(&mut self) -> OptionExprClauseGreen {
+        if self.peek().kind == SyntaxKind::TerminalSemicolon {
+            OptionExprClauseEmpty::new_green(self.db).into()
+        } else {
+            let value = self.parse_expr();
+            ExprClause::new_green(self.db, value).into()
+        }
+    }
+
     /// Returns a GreenId of a node with kind StructArgSingle.
     fn try_parse_argument_single(&mut self) -> Option<StructArgSingleGreen> {
         let identifier = self.try_parse_identifier()?;
@@ -1347,13 +1362,13 @@ impl<'a> Parser<'a> {
             }
             SyntaxKind::TerminalReturn => {
                 let return_kw = self.take::<TerminalReturn>();
-                let expr = self.parse_expr();
+                let expr = self.parse_option_expression_clause();
                 let semicolon = self.parse_token::<TerminalSemicolon>();
                 Some(StatementReturn::new_green(self.db, return_kw, expr, semicolon).into())
             }
             SyntaxKind::TerminalBreak => {
                 let break_kw = self.take::<TerminalBreak>();
-                let expr = self.parse_expr();
+                let expr = self.parse_option_expression_clause();
                 let semicolon = self.parse_token::<TerminalSemicolon>();
                 Some(StatementBreak::new_green(self.db, break_kw, expr, semicolon).into())
             }

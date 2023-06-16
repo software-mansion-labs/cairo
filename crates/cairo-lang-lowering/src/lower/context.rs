@@ -1,7 +1,6 @@
 use std::ops::{Deref, DerefMut, Index};
 use std::sync::Arc;
 
-use cairo_lang_defs::diagnostic_utils::StableLocationOption;
 use cairo_lang_defs::ids::{LanguageElementId, ModuleFileId};
 use cairo_lang_diagnostics::{DiagnosticAdded, Maybe};
 use cairo_lang_semantic::expr::fmt::ExprFormatter;
@@ -10,11 +9,13 @@ use cairo_lang_semantic::items::imp::ImplLookupContext;
 use cairo_lang_syntax::node::ids::SyntaxStablePtrId;
 use cairo_lang_utils::ordered_hash_map::OrderedHashMap;
 use cairo_lang_utils::unordered_hash_map::UnorderedHashMap;
+use defs::diagnostic_utils::StableLocation;
 use id_arena::Arena;
 use itertools::{zip_eq, Itertools};
+use semantic::corelib::{core_module, get_ty_by_name};
 use semantic::expr::inference::InferenceError;
 use semantic::types::wrap_in_snapshots;
-use semantic::ExprVarMemberPath;
+use semantic::{ExprVarMemberPath, TypeLongId};
 use {cairo_lang_defs as defs, cairo_lang_semantic as semantic};
 
 use super::block_builder::{BlockBuilder, SealedBlockBuilder};
@@ -23,7 +24,9 @@ use super::usage::BlockUsages;
 use crate::blocks::FlatBlocksBuilder;
 use crate::db::LoweringGroup;
 use crate::diagnostic::LoweringDiagnostics;
-use crate::ids::{ConcreteFunctionWithBodyId, FunctionWithBodyId, SemanticFunctionIdEx, Signature};
+use crate::ids::{
+    ConcreteFunctionWithBodyId, FunctionWithBodyId, ObjectOriginId, SemanticFunctionIdEx, Signature,
+};
 use crate::lower::external::{extern_facade_expr, extern_facade_return_tys};
 use crate::objects::Variable;
 use crate::{FlatLowered, MatchArm, MatchExternInfo, MatchInfo, VariableId};
@@ -48,11 +51,10 @@ impl<'db> VariableAllocator<'db> {
             db,
             variables,
             module_file_id: function_id.module_file_id(db.upcast()),
-            lookup_context: ImplLookupContext {
-                module_id: function_id.parent_module(db.upcast()),
-                extra_modules: vec![],
+            lookup_context: ImplLookupContext::new(
+                function_id.parent_module(db.upcast()),
                 generic_params,
-            },
+            ),
         })
     }
 
@@ -69,16 +71,23 @@ impl<'db> VariableAllocator<'db> {
                 .map_err(InferenceError::Failed)
                 .and_then(|info| info.droppable),
             destruct_impl: ty_info
+                .clone()
                 .map_err(InferenceError::Failed)
                 .and_then(|info| info.destruct_impl),
+            panic_destruct_impl: ty_info
+                .map_err(InferenceError::Failed)
+                .and_then(|info| info.panic_destruct_impl),
             ty: req.ty,
             location: req.location,
         })
     }
 
-    /// Retrieves the StableLocation of a stable syntax pointer in the current function file.
-    pub fn get_location(&self, stable_ptr: SyntaxStablePtrId) -> StableLocationOption {
-        StableLocationOption::new(self.module_file_id, stable_ptr)
+    /// Retrieves the ObjectOriginId of a stable syntax pointer in the current function file.
+    pub fn get_location(&self, stable_ptr: SyntaxStablePtrId) -> ObjectOriginId {
+        ObjectOriginId::from_stable_location(
+            self.db,
+            StableLocation::new(self.module_file_id, stable_ptr),
+        )
     }
 }
 impl<'db> Index<VariableId> for VariableAllocator<'db> {
@@ -188,8 +197,8 @@ impl<'a, 'db> LoweringContext<'a, 'db> {
         self.variables.new_var(req)
     }
 
-    /// Retrieves the StableLocation of a stable syntax pointer in the current function file.
-    pub fn get_location(&self, stable_ptr: SyntaxStablePtrId) -> StableLocationOption {
+    /// Retrieves the ObjectOriginId of a stable syntax pointer in the current function file.
+    pub fn get_location(&self, stable_ptr: SyntaxStablePtrId) -> ObjectOriginId {
         self.variables.get_location(stable_ptr)
     }
 }
@@ -197,7 +206,7 @@ impl<'a, 'db> LoweringContext<'a, 'db> {
 /// Request for a lowered variable allocation.
 pub struct VarRequest {
     pub ty: semantic::TypeId,
-    pub location: StableLocationOption,
+    pub location: ObjectOriginId,
 }
 
 /// Representation of the value of a computed expression.
@@ -208,14 +217,14 @@ pub enum LoweredExpr {
     /// The expression value is a tuple.
     Tuple {
         exprs: Vec<LoweredExpr>,
-        location: StableLocationOption,
+        location: ObjectOriginId,
     },
     /// The expression value is an enum result from an extern call.
     ExternEnum(LoweredExprExternEnum),
-    Member(ExprVarMemberPath, StableLocationOption),
+    Member(ExprVarMemberPath, ObjectOriginId),
     Snapshot {
         expr: Box<LoweredExpr>,
-        location: StableLocationOption,
+        location: ObjectOriginId,
     },
 }
 impl LoweredExpr {
@@ -278,7 +287,7 @@ pub struct LoweredExprExternEnum {
     pub concrete_enum_id: semantic::ConcreteEnumId,
     pub inputs: Vec<VariableId>,
     pub member_paths: Vec<semantic::ExprVarMemberPath>,
-    pub location: StableLocationOption,
+    pub location: ObjectOriginId,
 }
 impl LoweredExprExternEnum {
     pub fn var(
@@ -361,7 +370,7 @@ pub enum LoweringFlowError {
     /// Computation failure. A corresponding diagnostic should be emitted.
     Failed(DiagnosticAdded),
     Panic(VariableId),
-    Return(VariableId, StableLocationOption),
+    Return(VariableId, ObjectOriginId),
     /// Every match arm is terminating - does not flow to parent builder
     /// e.g. returns or panics.
     Match(MatchInfo),
@@ -380,7 +389,7 @@ impl LoweringFlowError {
 /// Converts a lowering flow error to the appropriate block builder end, if possible.
 pub fn lowering_flow_error_to_sealed_block(
     ctx: &mut LoweringContext<'_, '_>,
-    builder: BlockBuilder,
+    mut builder: BlockBuilder,
     err: LoweringFlowError,
 ) -> Maybe<SealedBlockBuilder> {
     let block_id = builder.block_id;
@@ -390,7 +399,27 @@ pub fn lowering_flow_error_to_sealed_block(
             builder.ret(ctx, return_var, location)?;
         }
         LoweringFlowError::Panic(data_var) => {
-            builder.panic(ctx, data_var)?;
+            let panic_instance = generators::StructConstruct {
+                inputs: vec![],
+                ty: get_ty_by_name(
+                    ctx.db.upcast(),
+                    core_module(ctx.db.upcast()),
+                    "Panic".into(),
+                    vec![],
+                ),
+                location: ctx.variables[data_var].location,
+            }
+            .add(ctx, &mut builder.statements);
+            let err_instance = generators::StructConstruct {
+                inputs: vec![panic_instance, data_var],
+                ty: ctx.db.intern_type(TypeLongId::Tuple(vec![
+                    ctx.variables[panic_instance].ty,
+                    ctx.variables[data_var].ty,
+                ])),
+                location: ctx.variables[data_var].location,
+            }
+            .add(ctx, &mut builder.statements);
+            builder.panic(ctx, err_instance)?;
         }
         LoweringFlowError::Match(info) => {
             builder.unreachable_match(ctx, info);
