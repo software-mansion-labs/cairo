@@ -1016,7 +1016,7 @@ impl Display for ProtostarHint {
                 writedoc!(
                     f,
                     "
-                    stop_prank(contract_address=memory[{contract_address}[0]])
+                    stop_spoof(contract_address=memory[{contract_address}[0]])
                     "
                 )
             }
