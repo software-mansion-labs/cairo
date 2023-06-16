@@ -143,13 +143,15 @@ fn collect_tests(
     maybe_cairo_paths: Option<Vec<(&str, &str)>>,
     maybe_builtins: Option<Vec<&str>>,
 ) -> PyResult<(String, Vec<CollectedTest>)> {
-    let linked_libraries =
-        build_linked_libraries(maybe_cairo_paths.unwrap());
+    let linked_libraries: Option<Vec<LinkedLibrary>> = match maybe_cairo_paths {
+        Some(val) => Some(build_linked_libraries(val)),
+        None => None,
+    };
 
     let (sierra_program, collected) = internal_collect_tests(
         input_path,
         output_path,
-        Some(&linked_libraries),
+        linked_libraries,
         maybe_builtins.as_ref().map(|v| v.iter().map(|&s| s).collect()),
         None,
     )
