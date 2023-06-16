@@ -227,7 +227,7 @@ pub struct LinkedLibrary {
 pub fn collect_tests(
     input_path: &str,
     output_path: Option<&str>,
-    linked_libraries: &Option<Vec<LinkedLibrary>>,
+    linked_libraries: Option<&Vec<LinkedLibrary>>,
     builtins: Option<Vec<&str>>,
     corelib_path: Option<&str>,
 ) -> Result<(Program, Vec<TestConfigInternal>)> {
