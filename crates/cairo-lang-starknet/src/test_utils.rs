@@ -48,7 +48,6 @@ pub fn get_test_contract(example_file_name: &str) -> crate::contract_class::Cont
             allowed_libfuncs_list_name: Some(BUILTIN_ALL_LIBFUNCS_LIST.to_string()),
             ..CompilerConfig::default()
         },
-        None,
     )
     .expect("compile_path failed")
 }

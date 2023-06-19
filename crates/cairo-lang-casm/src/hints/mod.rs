@@ -20,6 +20,7 @@ pub enum Hint {
     Core(CoreHintBase),
     #[codec(index = 1)]
     Starknet(StarknetHint),
+    #[codec(index = 2)]
     Protostar(ProtostarHint),
 }
 
@@ -89,45 +90,54 @@ pub enum StarknetHint {
     },
 }
 
-#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone, Encode, Decode, JsonSchema)]
 pub enum ProtostarHint {
+    #[codec(index = 0)]
     StartRoll {
         block_number: ResOperand,
         target_contract_address: ResOperand,
         err_code: CellRef,
     },
+    #[codec(index = 1)]
     StopRoll {
         target_contract_address: ResOperand,
         err_code: CellRef,
     },
+    #[codec(index = 3)]
     StartWarp {
         block_timestamp: ResOperand,
         target_contract_address: ResOperand,
         err_code: CellRef,
     },
+    #[codec(index = 4)]
     StopWarp {
         target_contract_address: ResOperand,
         err_code: CellRef,
     },
+    #[codec(index = 5)]
     Declare {
         contract: ResOperand,
         result: CellRef,
         err_code: CellRef,
     },
+    #[codec(index = 6)]
     DeclareCairo0 {
         contract: ResOperand,
         result: CellRef,
         err_code: CellRef,
     },
+    #[codec(index = 7)]
     StartPrank {
         caller_address: ResOperand,
         target_contract_address: ResOperand,
         err_code: CellRef,
     },
+    #[codec(index = 8)]
     StopPrank {
         target_contract_address: ResOperand,
         err_code: CellRef,
     },
+    #[codec(index = 9)]
     Invoke {
         contract_address: ResOperand,
         function_name: ResOperand,
@@ -136,6 +146,7 @@ pub enum ProtostarHint {
         panic_data_start: CellRef,
         panic_data_end: CellRef,
     },
+    #[codec(index = 10)]
     MockCall {
         contract_address: ResOperand,
         function_name: ResOperand,
@@ -143,6 +154,7 @@ pub enum ProtostarHint {
         response_end: ResOperand,
         err_code: CellRef,
     },
+    #[codec(index = 11)]
     Deploy {
         prepared_contract_address: ResOperand,
         prepared_class_hash: ResOperand,
@@ -152,6 +164,7 @@ pub enum ProtostarHint {
         panic_data_start: CellRef,
         panic_data_end: CellRef,
     },
+    #[codec(index = 12)]
     Prepare {
         class_hash: ResOperand,
         calldata_start: ResOperand,
@@ -162,6 +175,7 @@ pub enum ProtostarHint {
         constructor_calldata_end: CellRef,
         err_code: CellRef,
     },
+    #[codec(index = 13)]
     Call {
         contract_address: ResOperand,
         function_name: ResOperand,
@@ -172,6 +186,7 @@ pub enum ProtostarHint {
         panic_data_start: CellRef,
         panic_data_end: CellRef,
     },
+    #[codec(index = 14)]
     Print {
         start: ResOperand,
         end: ResOperand,

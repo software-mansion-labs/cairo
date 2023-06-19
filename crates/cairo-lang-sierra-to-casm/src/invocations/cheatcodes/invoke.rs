@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use cairo_lang_casm::builder::CasmBuilder;
+use cairo_lang_casm::{builder::CasmBuilder, hints::ProtostarHint};
 use cairo_lang_casm::casm_build_extend;
 
 use super::{CompiledInvocation, CompiledInvocationBuilder, InvocationError};

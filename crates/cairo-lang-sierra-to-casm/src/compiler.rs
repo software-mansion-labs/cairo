@@ -9,7 +9,6 @@ use cairo_lang_sierra::ids::VarId;
 use cairo_lang_sierra::program::{BranchTarget, Invocation, Program, Statement, StatementIdx};
 use cairo_lang_sierra::program_registry::{ProgramRegistry, ProgramRegistryError};
 use cairo_lang_sierra::ProgramParser;
-use clap::Parser;
 use cairo_lang_sierra_type_size::get_type_size_map;
 use itertools::zip_eq;
 use thiserror::Error;
@@ -268,8 +267,7 @@ pub fn compile(
 
 /// Command line args parser.
 /// Exits with 0/1 if the input is formatted correctly/incorrectly.
-#[derive(Parser, Debug)]
-#[clap(version, verbatim_doc_comment)]
+#[derive(Debug)]
 pub struct Args {
     /// The file to compile
     pub file: String,

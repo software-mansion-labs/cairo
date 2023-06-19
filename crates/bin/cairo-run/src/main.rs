@@ -76,7 +76,6 @@ fn main() -> anyhow::Result<()> {
             &[],
             args.available_gas,
             StarknetState::default(),
-            None,
         )
         .with_context(|| "Failed to run the function.")?;
     match result.value {

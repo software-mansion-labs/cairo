@@ -16,12 +16,11 @@ use blockifier::state::cached_state::CachedState;
 use blockifier::test_utils::DictStateReader;
 use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::transaction_utils_for_protostar::{
-    declare_tx_default, deploy_account_tx,
+    declare_tx_default, deploy_account_tx, create_state_with_trivial_validation_account,
 };
 use blockifier::transaction::transactions::{DeclareTransaction, ExecutableTransaction};
-use cairo_felt::{felt_str as felt252_str, Felt252, PRIME_STR};
+use cairo_felt::{felt_str as felt252_str, Felt252};
 use cairo_lang_casm::hints::{CoreHint, DeprecatedHint, Hint, ProtostarHint, StarknetHint};
-use cairo_lang_casm::hints::{CoreHint, DeprecatedHint, Hint, StarknetHint};
 use cairo_lang_casm::instructions::Instruction;
 use cairo_lang_casm::operand::{
     BinOpOperand, CellRef, DerefOrImmediate, Operation, Register, ResOperand,
@@ -108,7 +107,7 @@ pub struct CairoHintProcessor<'a> {
     pub string_to_hint: HashMap<String, Hint>,
     // The starknet state.
     pub starknet_state: StarknetState,
-    blockifier_state: Option<CachedState<DictStateReader>>,
+    pub blockifier_state: Option<CachedState<DictStateReader>>,
 }
 
 fn cell_ref_to_relocatable(cell_ref: &CellRef, vm: &VirtualMachine) -> Relocatable {
@@ -2007,10 +2006,12 @@ where
     Instructions: Iterator<Item = &'a Instruction> + Clone,
 {
     let (hints_dict, string_to_hint) = build_hints_dict(instructions.clone());
+    let blockifier_state = create_state_with_trivial_validation_account();
     let mut hint_processor = CairoHintProcessor {
         runner: None,
         string_to_hint,
         starknet_state: StarknetState::default(),
+        blockifier_state: Some(blockifier_state),
     };
     run_function(instructions, builtins, additional_initialization, &mut hint_processor, hints_dict)
         .map(|(mem, val)| (mem, val, hint_processor.starknet_state))

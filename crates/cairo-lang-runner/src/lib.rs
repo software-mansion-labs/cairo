@@ -1,8 +1,7 @@
 //! Basic runner for running a Sierra program on the vm.
 use std::collections::HashMap;
 
-use blockifier::state::cached_state::CachedState;
-use blockifier::test_utils::DictStateReader;
+use blockifier::transaction::transaction_utils_for_protostar::create_state_with_trivial_validation_account;
 use cairo_felt::Felt252;
 use cairo_lang_casm::hints::Hint;
 use cairo_lang_casm::instructions::Instruction;
@@ -187,8 +186,9 @@ impl SierraCasmRunner {
         let instructions =
             chain!(entry_code.iter(), self.casm_program.instructions.iter(), footer.iter());
         let (hints_dict, string_to_hint) = build_hints_dict(instructions.clone());
+        let blockifier_state = create_state_with_trivial_validation_account();
         let mut hint_processor =
-            CairoHintProcessor { runner: Some(self), starknet_state, string_to_hint };
+            CairoHintProcessor { runner: Some(self), starknet_state, string_to_hint, blockifier_state: Some(blockifier_state), };
         self.run_function(func, &mut hint_processor, hints_dict, instructions, builtins).map(|v| {
             RunResultStarknet {
                 gas_counter: v.gas_counter,

@@ -8,6 +8,7 @@ description = "Basic cairo runner."
 
 [dependencies]
 anyhow.workspace = true
+serde_json.workspace = true
 ark-ff.workspace = true
 ark-secp256k1.workspace = true
 ark-secp256r1.workspace = true
