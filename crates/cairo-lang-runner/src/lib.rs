@@ -1,6 +1,8 @@
 //! Basic runner for running a Sierra program on the vm.
 use std::collections::HashMap;
 
+use blockifier::state::cached_state::CachedState;
+use blockifier::test_utils::DictStateReader;
 use cairo_felt::Felt252;
 use cairo_lang_casm::instructions::Instruction;
 use cairo_lang_casm::{casm, casm_extend};
@@ -139,6 +141,7 @@ impl SierraCasmRunner {
         args: &[Arg],
         available_gas: Option<usize>,
         starknet_state: StarknetState,
+        blockifier_state: Option<CachedState<DictStateReader>>,
     ) -> Result<RunResult, RunnerError> {
         let initial_gas = self.get_initial_available_gas(func, available_gas)?;
         let (entry_code, builtins) = self.create_entry_code(func, args, initial_gas)?;
@@ -166,6 +169,7 @@ impl SierraCasmRunner {
                 Ok(())
             },
             starknet_state,
+            blockifier_state,
         )?;
         let mut results_data = self.get_results_data(func, &cells, ap)?;
         // Handling implicits.
