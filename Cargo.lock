@@ -1092,6 +1092,7 @@ dependencies = [
  "num-traits 0.2.15",
  "pretty_assertions",
  "salsa",
+ "serde",
  "serde_json",
  "smol_str",
  "snapbox",

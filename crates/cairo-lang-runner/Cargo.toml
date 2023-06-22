@@ -43,6 +43,7 @@ num-traits.workspace = true
 salsa.workspace = true
 thiserror.workspace = true
 smol_str.workspace = true
+serde.workspace = true
 
 [dev-dependencies]
 pretty_assertions.workspace = true
