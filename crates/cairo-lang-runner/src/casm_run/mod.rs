@@ -2,7 +2,8 @@ use std::any::Any;
 use std::borrow::Cow;
 use std::collections::{HashMap, VecDeque};
 use std::ops::{Deref, Shl};
-use std::{i64, str};
+use std::path::PathBuf;
+use std::{fs, i64, str};
 
 use anyhow::Result;
 use ark_ff::fields::{Fp256, MontBackend, MontConfig};
@@ -16,7 +17,7 @@ use blockifier::state::cached_state::CachedState;
 use blockifier::test_utils::DictStateReader;
 use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::transaction_utils_for_protostar::{
-    declare_tx_default, deploy_account_tx, create_state_with_trivial_validation_account,
+    create_state_with_trivial_validation_account, declare_tx_default, deploy_account_tx,
 };
 use blockifier::transaction::transactions::{DeclareTransaction, ExecutableTransaction};
 use cairo_felt::{felt_str as felt252_str, Felt252};
@@ -25,9 +26,9 @@ use cairo_lang_casm::instructions::Instruction;
 use cairo_lang_casm::operand::{
     BinOpOperand, CellRef, DerefOrImmediate, Operation, Register, ResOperand,
 };
+use cairo_lang_sierra::ids::FunctionId;
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use cairo_lang_starknet::contract_class::ContractClass;
-use cairo_lang_sierra::ids::FunctionId;
 use cairo_lang_utils::extract_matches;
 use cairo_vm::hint_processor::hint_processor_definition::{HintProcessor, HintReference};
 use cairo_vm::serde::deserialize_program::{
@@ -46,6 +47,7 @@ use dict_manager::DictManagerExecScope;
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, ToPrimitive, Zero};
+use serde::Deserialize;
 use starknet_api::transaction::Fee;
 use {ark_secp256k1 as secp256k1, ark_secp256r1 as secp256r1};
 
@@ -1790,6 +1792,26 @@ pub fn execute_core_hint(
     Ok(())
 }
 
+#[derive(Deserialize)]
+struct ScarbStarknetArtifacts {
+    version: u32,
+    contracts: Vec<ScarbStarknetContract>,
+}
+
+#[derive(Deserialize)]
+struct ScarbStarknetContract {
+    id: String,
+    package_name: String,
+    contract_name: String,
+    artifacts: ScarbStarknetContractArtifact,
+}
+
+#[derive(Deserialize)]
+struct ScarbStarknetContractArtifact {
+    sierra: PathBuf,
+    casm: PathBuf,
+}
+
 #[allow(unused)]
 fn execute_protostar_hint(
     vm: &mut VirtualMachine,
@@ -1808,22 +1830,32 @@ fn execute_protostar_hint(
             let contract_value_as_short_str =
                 as_cairo_short_string(&contract_value).expect("conversion to short string failed");
 
-            let paths = std::fs::read_dir("./target/dev")
+            let mut paths = std::fs::read_dir("./target/dev")
                 .expect("failed to read ./target/dev, maybe build failed");
-            let mut maybe_sierra_path: Option<String> = None;
-            for path in paths {
-                let path_str = path
-                    .expect("path not resolved properly")
-                    .path()
-                    .to_str()
-                    .expect("failed to convert path to string")
-                    .to_string();
-                if path_str.contains(&contract_value_as_short_str[..])
-                    && path_str.contains(".sierra.json")
-                {
-                    maybe_sierra_path = Some(path_str);
+
+            let starknet_artifacts = &paths
+                .find_map(|path| match path {
+                    Ok(path) => {
+                        let name = path.file_name().into_string().ok()?;
+                        name.contains("starknet_artifacts").then(|| path)
+                    }
+                    Err(_) => None,
+                })
+                .expect("failed to find starknet_artifacts.json file");
+            let starknet_artifacts = fs::read_to_string(starknet_artifacts.path())
+                .expect("failed to read starknet_artifacts.json contents");
+            let starknet_artifacts: ScarbStarknetArtifacts =
+                serde_json::from_str(starknet_artifacts.as_str())
+                    .expect("failed to parse starknet_artifacts.json contents");
+
+            let maybe_sierra_path = starknet_artifacts.contracts.iter().find_map(|contract| {
+                let name = contract.contract_name.to_lowercase();
+                if name == contract_value_as_short_str {
+                    return Some(contract.artifacts.sierra.clone());
                 }
-            }
+                None
+            });
+
             let file = std::fs::File::open(
                 maybe_sierra_path.expect("no valid path to sierra file detected"),
             )
