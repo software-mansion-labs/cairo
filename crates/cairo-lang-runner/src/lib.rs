@@ -139,7 +139,7 @@ pub struct SierraCasmRunner {
     /// Program registry for the Sierra program.
     type_sizes: TypeSizeMap,
     /// The casm program matching the Sierra code.
-    pub casm_program: CairoProgram,
+    casm_program: CairoProgram,
     #[allow(dead_code)]
     // Mapping from class_hash to contract info.
     starknet_contracts_info: OrderedHashMap<Felt252, ContractInfo>,
@@ -172,6 +172,10 @@ impl SierraCasmRunner {
         })
     }
 
+    pub fn get_casm_program(&self) -> &CairoProgram {
+        &self.casm_program
+    }
+
     /// Runs the vm starting from a function in the context of a given starknet state.
     pub fn run_function_with_starknet_context(
         &self,
@@ -187,8 +191,12 @@ impl SierraCasmRunner {
             chain!(entry_code.iter(), self.casm_program.instructions.iter(), footer.iter());
         let (hints_dict, string_to_hint) = build_hints_dict(instructions.clone());
         let blockifier_state = create_state_with_trivial_validation_account();
-        let mut hint_processor =
-            CairoHintProcessor { runner: Some(self), starknet_state, string_to_hint, blockifier_state: Some(blockifier_state), };
+        let mut hint_processor = CairoHintProcessor {
+            runner: Some(self),
+            starknet_state,
+            string_to_hint,
+            blockifier_state: Some(blockifier_state),
+        };
         self.run_function(func, &mut hint_processor, hints_dict, instructions, builtins).map(|v| {
             RunResultStarknet {
                 gas_counter: v.gas_counter,

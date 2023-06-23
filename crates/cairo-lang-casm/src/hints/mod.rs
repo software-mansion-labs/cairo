@@ -93,16 +93,9 @@ pub enum StarknetHint {
 #[derive(Serialize, Deserialize, Debug, Eq, PartialEq, Clone, Encode, Decode, JsonSchema)]
 pub enum ProtostarHint {
     #[codec(index = 0)]
-    StartRoll {
-        block_number: ResOperand,
-        target_contract_address: ResOperand,
-        err_code: CellRef,
-    },
+    StartRoll { block_number: ResOperand, target_contract_address: ResOperand, err_code: CellRef },
     #[codec(index = 1)]
-    StopRoll {
-        target_contract_address: ResOperand,
-        err_code: CellRef,
-    },
+    StopRoll { target_contract_address: ResOperand, err_code: CellRef },
     #[codec(index = 3)]
     StartWarp {
         block_timestamp: ResOperand,
@@ -110,22 +103,11 @@ pub enum ProtostarHint {
         err_code: CellRef,
     },
     #[codec(index = 4)]
-    StopWarp {
-        target_contract_address: ResOperand,
-        err_code: CellRef,
-    },
+    StopWarp { target_contract_address: ResOperand, err_code: CellRef },
     #[codec(index = 5)]
-    Declare {
-        contract: ResOperand,
-        result: CellRef,
-        err_code: CellRef,
-    },
+    Declare { contract: ResOperand, result: CellRef, err_code: CellRef },
     #[codec(index = 6)]
-    DeclareCairo0 {
-        contract: ResOperand,
-        result: CellRef,
-        err_code: CellRef,
-    },
+    DeclareCairo0 { contract: ResOperand, result: CellRef, err_code: CellRef },
     #[codec(index = 7)]
     StartPrank {
         caller_address: ResOperand,
@@ -133,10 +115,7 @@ pub enum ProtostarHint {
         err_code: CellRef,
     },
     #[codec(index = 8)]
-    StopPrank {
-        target_contract_address: ResOperand,
-        err_code: CellRef,
-    },
+    StopPrank { target_contract_address: ResOperand, err_code: CellRef },
     #[codec(index = 9)]
     Invoke {
         contract_address: ResOperand,
@@ -187,10 +166,7 @@ pub enum ProtostarHint {
         panic_data_end: CellRef,
     },
     #[codec(index = 14)]
-    Print {
-        start: ResOperand,
-        end: ResOperand,
-    },
+    Print { start: ResOperand, end: ResOperand },
 }
 
 // Represents a cairo core hint.
