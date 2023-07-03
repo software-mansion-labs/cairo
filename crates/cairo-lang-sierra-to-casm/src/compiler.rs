@@ -263,15 +263,6 @@ pub fn compile(
     })
 }
 
-/// Command line args parser.
-/// Exits with 0/1 if the input is formatted correctly/incorrectly.
-#[derive(Debug)]
-pub struct Args {
-    /// The file to compile
-    pub file: String,
-    pub output: String,
-}
-
 /// Returns true if `statement` is an invocation of the branch_align libfunc.
 fn is_branch_align(
     registry: &ProgramRegistry<CoreType, CoreLibfunc>,
