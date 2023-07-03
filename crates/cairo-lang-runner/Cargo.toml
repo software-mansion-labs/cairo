@@ -31,7 +31,6 @@ cairo-lang-starknet = { path = "../cairo-lang-starknet", version = "2.0.0-rc5" }
 cairo-lang-utils = { path = "../cairo-lang-utils", version = "2.0.0-rc5" }
 starknet_api = { git = "https://github.com/starkware-libs/starknet-api", rev = "24a7249" }
 blockifier = { git = "https://github.com/software-mansion-labs/blockifier.git", branch="kb/use-in-protostar" }
-snapbox = "0.4.11"
 cairo-vm.workspace = true
 itertools.workspace = true
 keccak.workspace = true
