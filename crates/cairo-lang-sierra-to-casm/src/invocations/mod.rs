@@ -35,7 +35,6 @@ mod bitwise;
 mod boolean;
 mod boxing;
 mod casts;
-mod cheatcodes;
 mod debug;
 mod ec;
 mod enm;
@@ -615,7 +614,6 @@ pub fn compile_invocation(
         CoreConcreteLibfunc::Poseidon(libfunc) => poseidon::build(libfunc, builder),
         CoreConcreteLibfunc::StarkNet(libfunc) => starknet::build(libfunc, builder),
         CoreConcreteLibfunc::Nullable(libfunc) => nullable::build(libfunc, builder),
-        CoreConcreteLibfunc::Cheatcodes(libfunc) => cheatcodes::build(libfunc, builder),
         CoreConcreteLibfunc::Debug(libfunc) => debug::build(libfunc, builder),
         CoreConcreteLibfunc::SnapshotTake(_) => misc::build_dup(builder),
         CoreConcreteLibfunc::Felt252DictEntry(libfunc) => {

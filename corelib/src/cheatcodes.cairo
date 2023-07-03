@@ -15,7 +15,7 @@ struct PreparedContract {
 
 #[derive(Drop, Clone)]
 struct RevertedTransaction {
-    panic_data: Array::<felt252>,
+    panic_data: Array::<felt252>, 
 }
 
 trait RevertedTransactionTrait {
@@ -29,7 +29,7 @@ impl RevertedTransactionImpl of RevertedTransactionTrait {
 }
 
 fn declare(contract: felt252) -> Result::<felt252, felt252> {
-    let span =  cheatcode::<'declare'>(array![contract].span());
+    let span = cheatcode::<'declare'>(array![contract].span());
 
     let exit_code = *span[0];
     let result = *span[1];
@@ -42,7 +42,8 @@ fn declare(contract: felt252) -> Result::<felt252, felt252> {
 }
 
 fn deploy(prepared_contract: PreparedContract) -> Result::<felt252, RevertedTransaction> {
-    let PreparedContract{ contract_address, class_hash, mut constructor_calldata } = prepared_contract;
+    let PreparedContract{contract_address, class_hash, mut constructor_calldata } =
+        prepared_contract;
     let mut inputs = array![contract_address, class_hash];
 
     let calldata_len = constructor_calldata.len().into();
@@ -74,7 +75,7 @@ fn deploy(prepared_contract: PreparedContract) -> Result::<felt252, RevertedTran
         let mut i = 2;
         loop {
             if panic_data_len + 2 == i {
-                break();
+                break ();
             }
             let x = *outputs[i];
             panic_data.append(0);

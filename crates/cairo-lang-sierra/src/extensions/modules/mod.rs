@@ -13,7 +13,6 @@ pub mod boolean;
 pub mod boxing;
 pub mod branch_align;
 pub mod casts;
-pub mod cheatcodes;
 pub mod consts;
 pub mod debug;
 pub mod drop;
