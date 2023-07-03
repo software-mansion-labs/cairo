@@ -630,7 +630,7 @@ impl PythonicHint for CoreHint {
             CoreHint::DebugPrint { start, end } => formatdoc!(
                 "
 
-                    start = {}
+                    curr = {}
                     end = {}
                     while curr != end:
                         print(hex(memory[curr]))

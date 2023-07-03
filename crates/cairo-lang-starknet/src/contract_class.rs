@@ -79,7 +79,6 @@ pub fn compile_path(
     path: &Path,
     contract_path: Option<&str>,
     compiler_config: CompilerConfig<'_>,
-    maybe_cairo_paths: Option<Vec<&str>>,
 ) -> Result<ContractClass> {
     let mut db = RootDatabase::builder()
         .detect_corelib()
@@ -87,11 +86,6 @@ pub fn compile_path(
         .build()?;
 
     let main_crate_ids = setup_project(&mut db, Path::new(&path))?;
-    if let Some(cairo_paths) = maybe_cairo_paths {
-        for cairo_path in cairo_paths {
-            setup_project(&mut db, Path::new(cairo_path))?;
-        }
-    }
 
     compile_contract_in_prepared_db(&db, contract_path, main_crate_ids, compiler_config)
 }
@@ -270,7 +264,6 @@ pub fn starknet_compile(
         &crate_path,
         contract_path.as_deref(),
         if let Some(config) = config { config } else { CompilerConfig::default() },
-        Some(vec![]),
     )?;
     validate_compatible_sierra_version(
         &contract,

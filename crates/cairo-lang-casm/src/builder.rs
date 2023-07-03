@@ -836,20 +836,6 @@ macro_rules! casm_build_extend {
             $($output_name : $output_value),*
         }; $($tok)*)
     };
-    ($builder:ident, hint ProtostarHint::$hint_name:ident {
-        $($input_name:ident : $input_value:ident),*
-    } into {
-        $($output_name:ident : $output_value:ident),*
-    }; $($tok:tt)*) => {
-    $builder.add_hint(
-        |[$($input_name),*], [$($output_name),*]| $crate::hints::ProtostarHint::$hint_name {
-            $($input_name,)* $($output_name,)*
-        },
-        [$($input_value,)*],
-        [$($output_value,)*],
-    );
-    $crate::casm_build_extend!($builder, $($tok)*)
-    };
     ($builder:ident, hint $hint_head:ident$(::$hint_tail:ident)* {
         $($arg_name:ident : $arg_value:ident),*
     }; $($tok:tt)*) => {

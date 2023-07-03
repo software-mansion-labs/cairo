@@ -334,7 +334,7 @@ impl HintProcessor for CairoHintProcessor<'_> {
         };
         match hint {
             StarknetHint::SystemCall { system } => {
-                self.execute_syscall(&system, vm, exec_scopes)?;
+                self.execute_syscall(system, vm, exec_scopes)?;
             }
             StarknetHint::Cheatcode {
                 selector,
@@ -344,9 +344,9 @@ impl HintProcessor for CairoHintProcessor<'_> {
                 output_end,
             } => {
                 self.execute_cheatcode(
-                    &selector,
-                    [&input_start, &input_end],
-                    [&output_start, &output_end],
+                    selector,
+                    [input_start, input_end],
+                    [output_start, output_end],
                     vm,
                     exec_scopes,
                 )?;
