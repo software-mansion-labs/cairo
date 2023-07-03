@@ -1,14 +1,15 @@
 use array::ArrayTrait;
 use traits::Into;
-use starknet::ContractAddressIntoFelt252;
 use option::Option;
+use starknet::ContractAddressIntoFelt252;
+use starknet::testing::cheatcode;
 
 extern fn print(message: Array<felt252>) nopanic;
 
 fn print_felt252(message: felt252) {
     let mut arr = ArrayTrait::new();
     arr.append(message);
-    print(arr);
+    cheatcode::<'print'>(arr.span());
 }
 
 trait PrintTrait<T> {
@@ -64,6 +65,6 @@ impl U256PrintImpl of PrintTrait<u256> {
 
 impl ArrayGenericPrintImpl of PrintTrait<Array<felt252>> {
     fn print(mut self: Array::<felt252>) {
-        print(self);
+        cheatcode::<'print'>(self.span());
     }
 }

@@ -310,24 +310,9 @@ use starknet::System;
 
 // Cheatcodes
 mod cheatcodes;
-use cheatcodes::start_roll;
-use cheatcodes::stop_roll;
 use cheatcodes::declare;
-use cheatcodes::declare_cairo0;
-use cheatcodes::start_prank;
-use cheatcodes::stop_prank;
-use cheatcodes::start_warp;
-use cheatcodes::stop_warp;
-use cheatcodes::invoke;
-use cheatcodes::mock_call;
 use cheatcodes::deploy;
-use cheatcodes::deploy_impl;
 use cheatcodes::PreparedContract;
-use cheatcodes::prepare_impl;
-use cheatcodes::prepare;
-use cheatcodes::deploy_contract;
-use cheatcodes::deploy_contract_cairo0;
-use cheatcodes::call;
 
 mod protostar_print;
 
