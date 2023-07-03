@@ -44,7 +44,7 @@ struct AbcEtc {
 
 
 #[starknet::contract]
-mod TestContract {
+mod test_contract {
     use super::AbcEtc;
 
     #[storage]
@@ -52,12 +52,12 @@ mod TestContract {
         data: AbcEtc, 
     }
 
-    #[external]
+    #[external(v0)]
     fn set_data(ref self: ContractState, value: AbcEtc) {
         self.data.write(value);
     }
 
-    #[external]
+    #[external(v0)]
     fn get_data(self: @ContractState) -> AbcEtc {
         self.data.read()
     }
@@ -83,9 +83,9 @@ fn write_read_struct() {
         }
     };
 
-    assert(TestContract::__external::set_data(serialized_element(*@x)).is_empty(), 'Not empty');
+    assert(test_contract::__external::set_data(serialized_element(*@x)).is_empty(), 'Not empty');
 
-    let mut retdata = TestContract::__external::get_data(Default::default().span());
+    let mut retdata = test_contract::__external::get_data(Default::default().span());
     assert(single_deserialize(ref retdata) == x, 'Wrong result');
     assert(retdata.is_empty(), 'Array not empty');
 }

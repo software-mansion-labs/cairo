@@ -7,11 +7,11 @@ use cairo_lang_semantic::{GenericArgumentId, TypeLongId};
 use num_bigint::{BigInt, Sign};
 
 use crate::db::LoweringGroup;
-use crate::ids::{ConcreteFunctionWithBodyId, ObjectOriginId, SemanticFunctionIdEx};
+use crate::ids::{ConcreteFunctionWithBodyId, LocationId, SemanticFunctionIdEx};
 use crate::lower::context::{VarRequest, VariableAllocator};
 use crate::{
     BlockId, FlatBlock, FlatBlockEnd, FlatLowered, MatchArm, MatchExternInfo, MatchInfo, Statement,
-    StatementCall, StatementLiteral, StatementStructConstruct,
+    StatementCall, StatementLiteral, StatementStructConstruct, VarUsage,
 };
 
 /// Main function for the add_withdraw_gas lowering phase. Adds a `withdraw_gas` statement to the
@@ -36,8 +36,8 @@ fn add_withdraw_gas_to_function(
     function: ConcreteFunctionWithBodyId,
     lowered: &mut FlatLowered,
 ) -> Maybe<()> {
-    // TODO(ilya): Add metadata
-    let location = ObjectOriginId::from_stable_location(db, function.stable_location(db)?);
+    let location = LocationId::from_stable_location(db, function.stable_location(db)?)
+        .with_auto_generation_note(db, "withdraw_gas");
     let panic_block = create_panic_block(db, function, lowered, location)?;
 
     let old_root_block = lowered.blocks.root_block()?.clone();
@@ -83,7 +83,7 @@ fn add_withdraw_gas_to_function(
                     vec![],
                 )
                 .lowered(db),
-                inputs: vec![builtin_costs_var],
+                inputs: vec![VarUsage { var_id: builtin_costs_var, location }],
                 arms: vec![
                     MatchArm {
                         variant_id: option_some_variant(
@@ -117,7 +117,7 @@ fn create_panic_block(
     db: &dyn LoweringGroup,
     function: ConcreteFunctionWithBodyId,
     lowered: &mut FlatLowered,
-    location: ObjectOriginId,
+    location: LocationId,
 ) -> Maybe<FlatBlock> {
     let mut variables = VariableAllocator::new(
         db,
@@ -144,6 +144,8 @@ fn create_panic_block(
     lowered.variables = variables.variables;
 
     let array_module = core_submodule(db.upcast(), "array");
+
+    let add_location = |var_id| VarUsage { var_id, location };
 
     // The block consists of creating a new array, appending 'Out of gas' to it and panic with this
     // array as panic data.
@@ -173,7 +175,10 @@ fn create_panic_block(
                     vec![GenericArgumentId::Type(core_felt252_ty(db.upcast()))],
                 )
                 .lowered(db),
-                inputs: vec![new_array_var, out_of_gas_err_var],
+                inputs: vec![new_array_var, out_of_gas_err_var]
+                    .into_iter()
+                    .map(add_location)
+                    .collect(),
                 outputs: vec![panic_data_var],
                 location,
             }),
@@ -182,7 +187,10 @@ fn create_panic_block(
                 output: panic_instance_var,
             }),
             Statement::StructConstruct(StatementStructConstruct {
-                inputs: vec![panic_instance_var, panic_data_var],
+                inputs: vec![panic_instance_var, panic_data_var]
+                    .into_iter()
+                    .map(add_location)
+                    .collect(),
                 output: err_data_var,
             }),
         ],

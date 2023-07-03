@@ -1,12 +1,9 @@
 use core::array::ArrayTrait;
-use core::debug::PrintTrait;
 
 #[available_gas(2000000)]
 #[test]
 fn main() {
-    let mut a: Array<felt252> = ArrayTrait::new();
-    a.append('a');
-    a.append('b');
+    let mut a: Array<felt252> = array!['a', 'b'];
 
     let a = loop {
         let v: felt252 = match a.pop_front() {
@@ -17,9 +14,5 @@ fn main() {
                 break 'hi';
             }
         };
-
-        v.print();
     };
-
-    a.print();
 }

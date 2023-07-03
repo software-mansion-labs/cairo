@@ -5,18 +5,18 @@ ExpandContractTestRunner
 
 //! > cairo_code
 #[starknet::contract]
-mod HelloStarknet {
+mod hello_starknet {
     #[storage]
     struct Storage { balance: felt252, }
 
     // Increases the balance by the given amount.
-    #[external]
+    #[external(v0)]
     fn increase_balance(ref self: ContractState, amount: felt252) {
         self.balance.write(self.balance.read() + amount);
     }
 
     // Returns the current balance.
-    #[external]
+    #[external(v0)]
     fn get_balance(self: @ContractState) -> felt252 {
         self.balance.read()
     }
@@ -26,18 +26,18 @@ mod HelloStarknet {
 lib.cairo:
 
 #[starknet::contract]
-mod HelloStarknet {
+mod hello_starknet {
     #[storage]
     struct Storage { balance: felt252, }
 
     // Increases the balance by the given amount.
-    #[external]
+    #[external(v0)]
     fn increase_balance(ref self: ContractState, amount: felt252) {
         self.balance.write(self.balance.read() + amount);
     }
 
     // Returns the current balance.
-    #[external]
+    #[external(v0)]
     fn get_balance(self: @ContractState) -> felt252 {
         self.balance.read()
     }
@@ -49,7 +49,7 @@ use starknet::SyscallResultTrait;
 use starknet::SyscallResultTraitImpl;
 
 #[cfg(test)]
-const TEST_CLASS_HASH: felt252 = 1497905547283796345028171189586039523695589234393994974564547326236831577928;
+const TEST_CLASS_HASH: felt252 = 1102354323051365330526116728762987089260624826846154342310342950171552219682;
 use starknet::event::EventEmitter;
 #[derive(Drop)]
     struct ContractState {
@@ -71,7 +71,8 @@ use starknet::event::EventEmitter;
     #[event] #[derive(Drop, starknet::Event)] enum Event {}
 
     impl ContractStateEventEmitter of EventEmitter<ContractState, Event> {
-        fn emit(ref self: ContractState, event: Event) {
+        fn emit<S, impl IntoImp: traits::Into<S, Event>>(ref self: ContractState, event: S) {
+            let event: Event = traits::Into::into(event);
             let mut keys = Default::<array::Array>::default();
             let mut data = Default::<array::Array>::default();
             starknet::Event::append_keys_and_data(@event, ref keys, ref data);
@@ -160,8 +161,8 @@ mod __external {
                 panic(err_data);
             }
             gas::withdraw_gas_all(get_builtin_costs()).expect('Out of gas');
-            let mut storage = super::unsafe_new_contract_state();
-            super::increase_balance(ref storage, __arg_amount);
+            let mut contract_state = super::unsafe_new_contract_state();
+            super::increase_balance(ref contract_state, __arg_amount);
             let mut arr = array::array_new();
             // References.
             // Result.
@@ -181,9 +182,9 @@ mod __external {
                 panic(err_data);
             }
             gas::withdraw_gas_all(get_builtin_costs()).expect('Out of gas');
-            let mut storage = super::unsafe_new_contract_state();
+            let mut contract_state = super::unsafe_new_contract_state();
             
-            let res = super::get_balance(@storage, );
+            let res = super::get_balance(@contract_state, );
             let mut arr = array::array_new();
             // References.
             // Result.

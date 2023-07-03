@@ -99,7 +99,7 @@ pub fn compile_path(
 /// Runs StarkNet contract compiler on the specified contract.
 /// If no contract was specified, verify that there is only one.
 /// Otherwise, return an error.
-pub(crate) fn compile_contract_in_prepared_db(
+pub fn compile_contract_in_prepared_db(
     db: &RootDatabase,
     contract_path: Option<&str>,
     main_crate_ids: Vec<CrateId>,
@@ -188,7 +188,7 @@ fn compile_contract_with_prepared_and_checked_db(
     let entry_points_by_type = ContractEntryPoints {
         external: get_entry_points(db, &external, &replacer)?,
         l1_handler: get_entry_points(db, &l1_handler, &replacer)?,
-        /// TODO(orizi): Validate there is at most one constructor.
+        // Later generation of ABI verifies that there is up to one constructor.
         constructor: get_entry_points(db, &constructor, &replacer)?,
     };
     let contract_class = ContractClass {

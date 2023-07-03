@@ -12,7 +12,7 @@ use {cairo_lang_defs as defs, cairo_lang_semantic as semantic};
 
 use crate::db::LoweringGroup;
 use crate::ids::semantic::substitution::SemanticRewriter;
-use crate::ObjectOrigin;
+use crate::Location;
 
 #[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 pub enum FunctionWithBodyLongId {
@@ -263,9 +263,12 @@ impl<'a> DebugWithDb<dyn LoweringGroup + 'a> for FunctionLongId {
         match self {
             FunctionLongId::Semantic(semantic) => semantic.fmt(f, db),
             FunctionLongId::Generated(generated) => {
-                // TODO(spapini): Differentiate between the generated functions according to
-                // `element`.
-                write!(f, "{:?}[expr{}]", generated.parent.debug(db), generated.element.index())
+                write!(
+                    f,
+                    "{}[expr{}]",
+                    generated.parent.full_path(db.upcast()),
+                    generated.element.index()
+                )
             }
         }
     }
@@ -327,16 +330,30 @@ fn parameter_as_member_path(param: semantic::Parameter) -> semantic::ExprVarMemb
     })
 }
 
-define_short_id!(ObjectOriginId, ObjectOrigin, LoweringGroup, lookup_intern_object_origin);
-impl ObjectOriginId {
+define_short_id!(LocationId, Location, LoweringGroup, lookup_intern_location);
+impl LocationId {
     pub fn from_stable_location(
         db: &dyn LoweringGroup,
         stable_location: StableLocation,
-    ) -> ObjectOriginId {
-        db.intern_object_origin(ObjectOrigin::new(stable_location))
+    ) -> LocationId {
+        db.intern_location(Location::new(stable_location))
     }
 
-    pub fn get(&self, db: &dyn LoweringGroup) -> ObjectOrigin {
-        db.lookup_intern_object_origin(*self)
+    pub fn get(&self, db: &dyn LoweringGroup) -> Location {
+        db.lookup_intern_location(*self)
+    }
+
+    // Adds a note to the location.
+    pub fn with_note(&self, db: &dyn LoweringGroup, note: String) -> LocationId {
+        db.intern_location(self.get(db).with_note(note))
+    }
+
+    // Adds a note that this location was generated while compiling an auto-generated function.
+    pub fn with_auto_generation_note(
+        &self,
+        db: &dyn LoweringGroup,
+        logic_name: &str,
+    ) -> LocationId {
+        self.with_note(db, format!("while compiling auto-generated {logic_name}"))
     }
 }

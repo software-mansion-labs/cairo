@@ -16,10 +16,10 @@ use indoc::formatdoc;
 
 use super::consts::{
     ABI_TRAIT, CONSTRUCTOR_ATTR, CONSTRUCTOR_MODULE, CONTRACT_ATTR, DEPRECATED_CONTRACT_ATTR,
-    EVENT_ATTR, EXTERNAL_ATTR, EXTERNAL_MODULE, L1_HANDLER_ATTR, L1_HANDLER_FIRST_PARAM_NAME,
-    L1_HANDLER_MODULE, STORAGE_ATTR, STORAGE_STRUCT_NAME,
+    EVENT_ATTR, EVENT_TYPE_NAME, EXTERNAL_ATTR, EXTERNAL_MODULE, L1_HANDLER_ATTR,
+    L1_HANDLER_FIRST_PARAM_NAME, L1_HANDLER_MODULE, STORAGE_ATTR, STORAGE_STRUCT_NAME,
 };
-use super::entry_point::{generate_entry_point_wrapper, EntryPointKind};
+use super::entry_point::{generate_entry_point_wrapper, has_external_attribute, EntryPointKind};
 use super::storage::handle_storage_struct;
 use super::utils::{is_felt252, is_mut_param, maybe_strip_underscore};
 use crate::contract::starknet_keccak;
@@ -55,7 +55,7 @@ pub fn handle_module(db: &dyn SyntaxGroup, module_ast: ast::ItemModule) -> Plugi
         };
     };
     let Some(storage_struct_ast) = body.items(db).elements(db).into_iter().find(|item| {
-        matches!(item, ast::Item::Struct(struct_ast) if struct_ast.name(db).text(db) == "Storage")
+        matches!(item, ast::Item::Struct(struct_ast) if struct_ast.name(db).text(db) == STORAGE_STRUCT_NAME)
     }) else {
         return PluginResult {
             code: None,
@@ -135,12 +135,14 @@ pub fn handle_contract_by_storage(
 
         let has_event_attr = item.has_attr(db, EVENT_ATTR);
         let event_name_info = match &item {
-            ast::Item::Struct(strct) => {
-                Some((strct.name(db).text(db) == "Event", strct.name(db).stable_ptr().untyped()))
-            }
-            ast::Item::Enum(enm) => {
-                Some((enm.name(db).text(db) == "Event", enm.name(db).stable_ptr().untyped()))
-            }
+            ast::Item::Struct(strct) => Some((
+                strct.name(db).text(db) == EVENT_TYPE_NAME,
+                strct.name(db).stable_ptr().untyped(),
+            )),
+            ast::Item::Enum(enm) => Some((
+                enm.name(db).text(db) == EVENT_TYPE_NAME,
+                enm.name(db).stable_ptr().untyped(),
+            )),
             _ => None,
         };
         if let Some((has_event_name, stable_ptr)) = event_name_info {
@@ -179,7 +181,7 @@ pub fn handle_contract_by_storage(
             ast::Item::Use(item) => {
                 let leaves = get_all_path_leafs(db, item.use_path(db));
                 for leaf in leaves {
-                    if leaf.stable_ptr().identifier(db) == "Event" {
+                    if leaf.stable_ptr().identifier(db) == EVENT_TYPE_NAME {
                         has_event = true;
                     }
                     extra_uses
@@ -198,8 +200,8 @@ pub fn handle_contract_by_storage(
             | ast::Item::ExternType(_)
             | ast::Item::Trait(_)
             | ast::Item::FreeFunction(_)
+            | ast::Item::ImplAlias(_)
             | ast::Item::Missing(_) => None,
-            ast::Item::ImplAlias(_) => todo!(),
         } {
             extra_uses
                 .entry(ident.text(db))
@@ -232,7 +234,9 @@ pub fn handle_contract_by_storage(
     for item in body.items(db).elements(db) {
         match &item {
             ast::Item::FreeFunction(item_function) => {
-                let Some(entry_point_kind) = EntryPointKind::try_from_function_with_body(db, item_function) else {
+                let Some(entry_point_kind) =
+                    EntryPointKind::try_from_function_with_body(db, &mut diagnostics, item_function)
+                else {
                     continue;
                 };
                 let function_name = RewriteNode::new_trimmed(
@@ -248,15 +252,8 @@ pub fn handle_contract_by_storage(
                 );
             }
             ast::Item::Impl(item_impl) => {
-                let Some(attr) = item_impl.find_attr(db, EXTERNAL_ATTR) else {
+                if !has_external_attribute(db, &mut diagnostics, &item) {
                     continue;
-                };
-                // TODO(spapini): Check attr args instead.
-                if attr.as_syntax_node().get_text_without_trivia(db) != "#[external(v0)]" {
-                    diagnostics.push(PluginDiagnostic {
-                        message: "Only #[external(v0)] is supported.".to_string(),
-                        stable_ptr: attr.stable_ptr().untyped(),
-                    });
                 }
                 let ast::MaybeImplBody::Some(body) = item_impl.body(db) else { continue; };
                 let impl_name = RewriteNode::new_trimmed(item_impl.name(db).as_syntax_node());

@@ -1,5 +1,5 @@
 #[starknet::contract]
-mod Account {
+mod account {
     use array::{ArrayTrait, SpanTrait};
     use box::BoxTrait;
     use ecdsa::check_ecdsa_signature;
@@ -42,7 +42,7 @@ mod Account {
     }
 
 
-    #[external]
+    #[external(v0)]
     fn __validate_deploy__(
         self: @ContractState,
         class_hash: felt252,

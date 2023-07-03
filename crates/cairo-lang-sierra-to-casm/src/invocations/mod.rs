@@ -574,7 +574,6 @@ pub fn compile_invocation(
         CompiledInvocationBuilder { program_info, invocation, libfunc, idx, refs, environment };
     match libfunc {
         CoreConcreteLibfunc::Felt252(libfunc) => felt252::build(libfunc, builder),
-        CoreConcreteLibfunc::Bitwise(_) => bitwise::build(builder),
         CoreConcreteLibfunc::Bool(libfunc) => boolean::build(libfunc, builder),
         CoreConcreteLibfunc::Cast(libfunc) => casts::build(libfunc, builder),
         CoreConcreteLibfunc::Ec(libfunc) => ec::build(libfunc, builder),
@@ -593,6 +592,11 @@ pub fn compile_invocation(
         CoreConcreteLibfunc::Uint128(libfunc) => int::unsigned128::build(libfunc, builder),
         CoreConcreteLibfunc::Uint256(libfunc) => int::unsigned256::build(libfunc, builder),
         CoreConcreteLibfunc::Uint512(libfunc) => int::unsigned512::build(libfunc, builder),
+        CoreConcreteLibfunc::Sint8(libfunc) => int::signed::build_sint(libfunc, builder),
+        CoreConcreteLibfunc::Sint16(libfunc) => int::signed::build_sint(libfunc, builder),
+        CoreConcreteLibfunc::Sint32(libfunc) => int::signed::build_sint(libfunc, builder),
+        CoreConcreteLibfunc::Sint64(libfunc) => int::signed::build_sint(libfunc, builder),
+        CoreConcreteLibfunc::Sint128(libfunc) => int::signed128::build(libfunc, builder),
         CoreConcreteLibfunc::Gas(libfunc) => gas::build(libfunc, builder),
         CoreConcreteLibfunc::BranchAlign(_) => misc::build_branch_align(builder),
         CoreConcreteLibfunc::Array(libfunc) => array::build(libfunc, builder),
