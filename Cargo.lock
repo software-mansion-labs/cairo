@@ -4215,6 +4215,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "sierra-compile"
+version = "2.0.0-rc5"
+dependencies = [
+ "anyhow",
+ "cairo-lang-sierra 2.0.0-rc5",
+ "cairo-lang-sierra-to-casm 2.0.0-rc5",
+ "cairo-lang-utils 2.0.0-rc5",
+ "clap",
+ "indoc",
+ "log",
+]
+
+[[package]]
 name = "signal-hook-registry"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
