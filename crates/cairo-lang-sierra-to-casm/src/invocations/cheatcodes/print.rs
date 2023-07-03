@@ -1,5 +1,6 @@
-use cairo_lang_casm::{builder::CasmBuilder, hints::ProtostarHint};
+use cairo_lang_casm::builder::CasmBuilder;
 use cairo_lang_casm::casm_build_extend;
+use cairo_lang_casm::hints::ProtostarHint;
 
 use super::{CompiledInvocation, CompiledInvocationBuilder, InvocationError};
 use crate::invocations::add_input_variables;

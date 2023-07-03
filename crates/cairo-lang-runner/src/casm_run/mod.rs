@@ -16,7 +16,7 @@ use blockifier::state::cached_state::CachedState;
 use blockifier::test_utils::DictStateReader;
 use blockifier::transaction::account_transaction::AccountTransaction;
 use blockifier::transaction::transaction_utils_for_protostar::{
-    declare_tx_default, deploy_account_tx, create_state_with_trivial_validation_account,
+    create_state_with_trivial_validation_account, declare_tx_default, deploy_account_tx,
 };
 use blockifier::transaction::transactions::{DeclareTransaction, ExecutableTransaction};
 use cairo_felt::{felt_str as felt252_str, Felt252};
@@ -25,9 +25,9 @@ use cairo_lang_casm::instructions::Instruction;
 use cairo_lang_casm::operand::{
     BinOpOperand, CellRef, DerefOrImmediate, Operation, Register, ResOperand,
 };
+use cairo_lang_sierra::ids::FunctionId;
 use cairo_lang_starknet::casm_contract_class::CasmContractClass;
 use cairo_lang_starknet::contract_class::ContractClass;
-use cairo_lang_sierra::ids::FunctionId;
 use cairo_lang_utils::bigint::BigIntAsHex;
 use cairo_lang_utils::extract_matches;
 use cairo_vm::hint_processor::hint_processor_definition::{HintProcessor, HintReference};
@@ -2005,7 +2005,7 @@ fn vm_get_range(
 }
 
 /// Extracts a parameter assumed to be a buffer.
-fn extract_buffer(buffer: &ResOperand) -> (&CellRef, Felt252) {
+pub fn extract_buffer(buffer: &ResOperand) -> (&CellRef, Felt252) {
     let (cell, base_offset) = match buffer {
         ResOperand::Deref(cell) => (cell, 0.into()),
         ResOperand::BinOp(BinOpOperand { op: Operation::Add, a, b }) => {
