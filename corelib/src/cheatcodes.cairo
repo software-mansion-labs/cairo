@@ -15,7 +15,7 @@ struct PreparedContract {
 
 #[derive(Drop, Clone)]
 struct RevertedTransaction {
-    panic_data: Array::<felt252>,
+    panic_data: Array::<felt252>, 
 }
 
 trait RevertedTransactionTrait {
@@ -42,8 +42,7 @@ fn declare(contract: felt252) -> Result::<felt252, felt252> {
 }
 
 fn deploy(prepared_contract: PreparedContract) -> Result::<felt252, RevertedTransaction> {
-    let PreparedContract { contract_address, class_hash, constructor_calldata } =
-        prepared_contract;
+    let PreparedContract{contract_address, class_hash, constructor_calldata } = prepared_contract;
     let mut inputs = array![contract_address, class_hash];
 
     let calldata_len_felt = constructor_calldata.len().into();
