@@ -77,8 +77,8 @@ fn deploy(prepared_contract: PreparedContract) -> Result::<felt252, RevertedTran
             if panic_data_len + 2 == i {
                 break ();
             }
-            let x = *outputs[i];
-            panic_data.append(0);
+            let value = *outputs[i];
+            panic_data.append(value);
             i += 1;
         };
 
