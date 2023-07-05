@@ -39,7 +39,6 @@ use cairo_lang_utils::casts::IntoOrPanic;
 use cairo_lang_utils::ordered_hash_map::OrderedHashMap;
 use itertools::{chain, Itertools};
 
-use crate::cheatcodes_libfunc_cost_base::cheatcodes_libfunc_cost_base;
 use crate::objects::{BranchCost, ConstCost, CostInfoProvider, PreCost};
 use crate::starknet_libfunc_cost_base::starknet_libfunc_cost_base;
 
@@ -347,9 +346,6 @@ pub fn core_libfunc_cost(
         },
         CoreConcreteLibfunc::StarkNet(libfunc) => {
             starknet_libfunc_cost_base(libfunc).into_iter().map(BranchCost::from).collect()
-        }
-        CoreConcreteLibfunc::Cheatcodes(libfunc) => {
-            cheatcodes_libfunc_cost_base(libfunc).into_iter().map(BranchCost::from).collect()
         }
         CoreConcreteLibfunc::Nullable(libfunc) => match libfunc {
             NullableConcreteLibfunc::Null(_) => vec![ConstCost::default().into()],

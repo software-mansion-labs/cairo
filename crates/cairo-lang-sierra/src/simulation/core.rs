@@ -320,10 +320,6 @@ pub fn simulate<
         CoreConcreteLibfunc::Nullable(_) => {
             unimplemented!("Simulation of nullable is not implemented yet.")
         }
-        CoreConcreteLibfunc::Cheatcodes(_) => {
-            unimplemented!("Simulation of the Cheatcodes functionalities is not implemented yet.")
-        }
-        // TODO: Implement simulation for the cheatcode functions.
         CoreConcreteLibfunc::Debug(_) => {
             if inputs.len() == 1 {
                 let arr = extract_matches!(&inputs[0], CoreValue::Array);

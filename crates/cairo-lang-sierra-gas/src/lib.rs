@@ -21,7 +21,6 @@ use itertools::Itertools;
 use objects::CostInfoProvider;
 use thiserror::Error;
 
-mod cheatcodes_libfunc_cost_base;
 pub mod compute_costs;
 pub mod core_libfunc_cost;
 mod core_libfunc_cost_base;
