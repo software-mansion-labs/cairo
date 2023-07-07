@@ -725,8 +725,6 @@ dependencies = [
  "num-traits 0.2.15",
  "pretty_assertions",
  "salsa",
- "serde_json",
- "smol_str",
  "test-case",
  "thiserror",
 ]
