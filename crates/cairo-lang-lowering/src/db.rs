@@ -18,9 +18,10 @@ use crate::diagnostic::LoweringDiagnostic;
 use crate::implicits::lower_implicits;
 use crate::inline::{apply_inlining, PrivInlineData};
 use crate::lower::{lower_semantic_function, MultiLowering};
-use crate::optimizations::delay_var_def::delay_var_def;
+use crate::optimizations::branch_inversion::branch_inversion;
 use crate::optimizations::match_optimizer::optimize_matches;
 use crate::optimizations::remappings::optimize_remappings;
+use crate::optimizations::reorder_statements::reorder_statements;
 use crate::panic::lower_panics;
 use crate::reorganize_blocks::reorganize_blocks;
 use crate::{ids, FlatBlockEnd, FlatLowered, Location, MatchInfo, Statement};
@@ -346,11 +347,15 @@ fn concrete_function_with_body_lowered(
 ) -> Maybe<Arc<FlatLowered>> {
     let mut lowered = (*db.concrete_function_with_body_postpanic_lowered(function)?).clone();
     optimize_remappings(&mut lowered);
-    delay_var_def(&mut lowered);
+    // The call to `reorder_statements` before and after `branch_inversion` is intentional.
+    // See description of `branch_inversion` for more details.
+    reorder_statements(db, &mut lowered);
+    branch_inversion(db, &mut lowered);
+    reorder_statements(db, &mut lowered);
     optimize_matches(&mut lowered);
     lower_implicits(db, function, &mut lowered);
     optimize_remappings(&mut lowered);
-    delay_var_def(&mut lowered);
+    reorder_statements(db, &mut lowered);
     reorganize_blocks(&mut lowered);
     Ok(Arc::new(lowered))
 }

@@ -32,6 +32,7 @@ use cairo_lang_utils::ordered_hash_map::OrderedHashMap;
 use cairo_vm::hint_processor::hint_processor_definition::HintProcessor;
 use cairo_vm::serde::deserialize_program::{BuiltinName, HintParams};
 use cairo_vm::vm::errors::cairo_run_errors::CairoRunError;
+use cairo_vm::vm::runners::cairo_runner::RunResources;
 use casm_run::hint_to_hint_params;
 pub use casm_run::{CairoHintProcessor, StarknetState};
 use itertools::chain;
@@ -74,6 +75,7 @@ pub struct RunResultStarknet {
 }
 
 /// The full result of a run.
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct RunResult {
     pub gas_counter: Option<Felt252>,
     pub memory: Vec<Option<Felt252>>,
@@ -81,7 +83,7 @@ pub struct RunResult {
 }
 
 /// The ran function return value.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum RunResultValue {
     /// Run ended successfully, returning the memory of the non-implicit returns.
     Success(Vec<Felt252>),
@@ -192,6 +194,7 @@ impl SierraCasmRunner {
             starknet_state,
             string_to_hint,
             blockifier_state: Some(blockifier_state),
+            run_resources: RunResources::default(),
         };
         self.run_function(func, &mut hint_processor, hints_dict, instructions, builtins).map(|v| {
             RunResultStarknet {
