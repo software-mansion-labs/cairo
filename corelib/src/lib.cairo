@@ -313,7 +313,7 @@ use cheatcodes::declare;
 use cheatcodes::deploy;
 use cheatcodes::PreparedContract;
 
-mod protostar_print;
+mod forge_print;
 
 // Internals.
 mod internal;
