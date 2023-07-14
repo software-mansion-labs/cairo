@@ -8,7 +8,6 @@ use starknet::testing::cheatcode;
 
 #[derive(Drop, Clone)]
 struct PreparedContract {
-    contract_address: felt252,
     class_hash: felt252,
     constructor_calldata: @Array::<felt252>,
 }
@@ -42,8 +41,8 @@ fn declare(contract: felt252) -> Result::<felt252, felt252> {
 }
 
 fn deploy(prepared_contract: PreparedContract) -> Result::<felt252, RevertedTransaction> {
-    let PreparedContract{contract_address, class_hash, constructor_calldata } = prepared_contract;
-    let mut inputs = array![contract_address, class_hash];
+    let PreparedContract{ class_hash, constructor_calldata } = prepared_contract;
+    let mut inputs = array![class_hash];
 
     let calldata_len_felt = constructor_calldata.len().into();
     inputs.append(calldata_len_felt);
@@ -65,7 +64,6 @@ fn deploy(prepared_contract: PreparedContract) -> Result::<felt252, RevertedTran
         let result = *outputs[1];
         Result::<felt252, RevertedTransaction>::Ok(result)
     } else {
-        // TODO: feel free to change depending on the cheatcode::<'deploy'> low level implementation of error handling
         let panic_data_len_felt = *outputs[1];
         let panic_data_len = panic_data_len_felt.try_into().unwrap();
         let mut panic_data = array![];
