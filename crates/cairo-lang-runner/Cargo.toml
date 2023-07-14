@@ -8,7 +8,6 @@ description = "Basic cairo runner."
 
 [dependencies]
 anyhow.workspace = true
-serde_json.workspace = true
 ark-ff.workspace = true
 ark-secp256k1.workspace = true
 ark-secp256r1.workspace = true
@@ -29,8 +28,6 @@ cairo-lang-sierra-to-casm = { path = "../cairo-lang-sierra-to-casm", version = "
 cairo-lang-sierra-type-size = { path = "../cairo-lang-sierra-type-size", version = "2.0.1" }
 cairo-lang-starknet = { path = "../cairo-lang-starknet", version = "2.0.1" }
 cairo-lang-utils = { path = "../cairo-lang-utils", version = "2.0.1" }
-starknet_api = { git = "https://github.com/starkware-libs/starknet-api", rev = "24a7249" }
-blockifier = { git = "https://github.com/software-mansion-labs/blockifier.git", branch="kb/use-in-protostar" }
 cairo-vm.workspace = true
 itertools.workspace = true
 keccak.workspace = true
@@ -39,7 +36,6 @@ num-integer.workspace = true
 num-traits.workspace = true
 salsa.workspace = true
 thiserror.workspace = true
-smol_str.workspace = true
 
 [dev-dependencies]
 pretty_assertions.workspace = true

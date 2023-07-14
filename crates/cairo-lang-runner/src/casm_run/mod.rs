@@ -2,15 +2,10 @@ use std::any::Any;
 use std::borrow::Cow;
 use std::collections::{HashMap, VecDeque};
 use std::ops::{Deref, Shl};
-use std::str;
 
-use anyhow::Result;
 use ark_ff::fields::{Fp256, MontBackend, MontConfig};
 use ark_ff::{BigInteger, Field, PrimeField};
 use ark_std::UniformRand;
-use blockifier::state::cached_state::CachedState;
-use blockifier::test_utils::DictStateReader;
-use blockifier::transaction::transaction_utils_for_protostar::create_state_with_trivial_validation_account;
 use cairo_felt::{felt_str as felt252_str, Felt252};
 use cairo_lang_casm::hints::{CoreHint, DeprecatedHint, Hint, StarknetHint};
 use cairo_lang_casm::instructions::Instruction;
@@ -101,7 +96,6 @@ pub struct CairoHintProcessor<'a> {
     pub starknet_state: StarknetState,
     // Maintains the resources of the run.
     pub run_resources: RunResources,
-    pub blockifier_state: Option<CachedState<DictStateReader>>,
 }
 
 pub fn cell_ref_to_relocatable(cell_ref: &CellRef, vm: &VirtualMachine) -> Relocatable {
@@ -1888,13 +1882,11 @@ where
     Instructions: Iterator<Item = &'a Instruction> + Clone,
 {
     let (hints_dict, string_to_hint) = build_hints_dict(instructions.clone());
-    let blockifier_state = create_state_with_trivial_validation_account();
     let mut hint_processor = CairoHintProcessor {
         runner: None,
         string_to_hint,
         starknet_state: StarknetState::default(),
         run_resources: RunResources::default(),
-        blockifier_state: Some(blockifier_state),
     };
     run_function(instructions, builtins, additional_initialization, &mut hint_processor, hints_dict)
         .map(|(mem, val)| (mem, val, hint_processor.starknet_state))
